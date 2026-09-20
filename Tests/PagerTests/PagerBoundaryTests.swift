@@ -22,13 +22,19 @@ struct PagerBoundaryTests {
             pages: [PagerPage(id: "a") { creations.append("a"); return a },
                     PagerPage(id: "b") { creations.append("b"); return b }],
             items: [.init(id: "a", title: "A"), .init(id: "b", title: "B")],
-            headerView: UIView(), headerHeight: 200,
+            headerView: UIView(),
+            headerHeight: 200,
             scrollViewProvider: { id, controller in
                 connections.append(id)
                 return (controller as! BoundaryListPage).scroll
             }
         )
-        sticky.setContentInset(UIEdgeInsets(top: 12, left: 0, bottom: 0, right: 0), for: "a")
+        sticky.setContentInset(UIEdgeInsets(
+            top: 12,
+            left: 0,
+            bottom: 0,
+            right: 0
+        ), for: "a")
         (sticky.pager as! PagerViewController).loadViewIfNeeded()
         if selectEarly { #expect(sticky.pager.selectPage("b", animated: false)) }
         #expect(!sticky.isViewLoaded)
@@ -47,7 +53,12 @@ struct PagerBoundaryTests {
 
     @Test("Initial selection is revealed once bounds become usable", arguments: [false, true])
     func initialSelectedTabVisibility(initiallyZeroSized: Bool) throws {
-        let frame = CGRect(x: 0, y: 0, width: 160, height: 44)
+        let frame = CGRect(
+            x: 0,
+            y: 0,
+            width: 160,
+            height: 44
+        )
         let bar = PagerTabBar(frame: initiallyZeroSized ? .zero : frame)
         let items = (0 ..< 10).map { PagerTabBar.Item(id: PagerPageId("\($0)"), title: "Page \($0)") }
         bar.setItems(items, selectedPageId: "9")
@@ -72,15 +83,22 @@ struct PagerBoundaryTests {
             #expect(sticky.tabBar.items.map(\.id) == sticky.pager.pageIds)
             #expect(sticky.tabBar.selectedPageId == id)
         }
-        sticky.setPages(empty ? [] : [PagerPage(id: "c") { BoundaryListPage() }],
-                        items: empty ? [] : [.init(id: "c", title: "C")])
+        sticky.setPages(
+            empty ? [] : [PagerPage(id: "c") { BoundaryListPage() }],
+            items: empty ? [] : [.init(id: "c", title: "C")]
+        )
         #expect(received)
         #expect(sticky.tabBar.selectedPageId == (empty ? nil : "c"))
     }
 
     @Test("Replacing tab items retains visibility of a distant selected tab")
     func replacementSelectedTabVisibility() throws {
-        let bar = PagerTabBar(frame: CGRect(x: 0, y: 0, width: 160, height: 44))
+        let bar = PagerTabBar(frame: CGRect(
+            x: 0,
+            y: 0,
+            width: 160,
+            height: 44
+        ))
         let items = (0 ..< 10).map { PagerTabBar.Item(id: PagerPageId("\($0)"), title: "Page \($0)") }
         bar.setItems(items, selectedPageId: "0")
         bar.layoutIfNeeded()
@@ -94,13 +112,22 @@ struct PagerBoundaryTests {
 
     @Test("Indicator updates do not undo the user's manual tab scrolling")
     func transitionPreservesTabScroll() throws {
-        let bar = PagerTabBar(frame: CGRect(x: 0, y: 0, width: 160, height: 44))
+        let bar = PagerTabBar(frame: CGRect(
+            x: 0,
+            y: 0,
+            width: 160,
+            height: 44
+        ))
         let items = (0 ..< 10).map { PagerTabBar.Item(id: PagerPageId("\($0)"), title: "Page \($0)") }
         bar.setItems(items, selectedPageId: "9")
         bar.layoutIfNeeded()
         let scroll = try #require(bar.subviews.first as? UIScrollView)
         scroll.contentOffset.x = 100
-        bar.displayTransition(PagerTransition(source: "9", destination: "8", progress: 0.5))
+        bar.displayTransition(PagerTransition(
+            source: "9",
+            destination: "8",
+            progress: 0.5
+        ))
         #expect(scroll.contentOffset.x == 100)
     }
 
@@ -109,10 +136,15 @@ struct PagerBoundaryTests {
         let sticky = makeSticky(a: BoundaryListPage(), b: BoundaryListPage())
         layout(sticky)
         let original = sticky.tabBar.items
-        #expect(!sticky.setPages([PagerPage(id: "c") { BoundaryListPage() }, PagerPage(id: "c") { BoundaryListPage() }],
-                                 items: [.init(id: "c", title: "C"), .init(id: "c", title: "C")]))
-        #expect(!sticky.setPages([PagerPage(id: "c") { BoundaryListPage() }],
-                                 items: [.init(id: "c", title: "C")], selectedPageId: "missing"))
+        #expect(!sticky.setPages(
+            [PagerPage(id: "c") { BoundaryListPage() }, PagerPage(id: "c") { BoundaryListPage() }],
+            items: [.init(id: "c", title: "C"), .init(id: "c", title: "C")]
+        ))
+        #expect(!sticky.setPages(
+            [PagerPage(id: "c") { BoundaryListPage() }],
+            items: [.init(id: "c", title: "C")],
+            selectedPageId: "missing"
+        ))
         #expect(!sticky.setPages([], items: [.init(id: "c", title: "C")]))
         (sticky.pager as! PagerViewController).host.scrollView.contentOffset.x = 120
         #expect(sticky.pager.isTransitioning)
@@ -139,8 +171,10 @@ struct PagerBoundaryTests {
             #expect(sticky.pager.selectPage("d", animated: false))
             #expect(sticky.pager.selectedPageId == "c")
         }
-        sticky.setPages(["c", "d", "e"].map { id in PagerPage(id: PagerPageId(id)) { BoundaryListPage() } },
-                        items: ["c", "d", "e"].map { .init(id: PagerPageId($0), title: $0) })
+        sticky.setPages(
+            ["c", "d", "e"].map { id in PagerPage(id: PagerPageId(id)) { BoundaryListPage() } },
+            items: ["c", "d", "e"].map { .init(id: PagerPageId($0), title: $0) }
+        )
         #expect(received)
         if newerSelection { sticky.pager.selectPage("e", animated: false) }
         await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }
@@ -152,14 +186,20 @@ struct PagerBoundaryTests {
         StickyPagerViewController(
             pages: [PagerPage(id: "a") { a }, PagerPage(id: "b") { b }],
             items: [.init(id: "a", title: "A"), .init(id: "b", title: "B")],
-            headerView: UIView(), headerHeight: 200,
+            headerView: UIView(),
+            headerHeight: 200,
             scrollViewProvider: { _, controller in (controller as! BoundaryListPage).scroll }
         )
     }
 
     private func layout(_ controller: UIViewController) {
         controller.loadViewIfNeeded()
-        controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 640)
+        controller.view.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 640
+        )
         controller.view.setNeedsLayout()
         controller.view.layoutIfNeeded()
     }

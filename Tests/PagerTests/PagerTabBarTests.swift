@@ -15,7 +15,12 @@ import UIKit
 struct PagerTabBarTests {
     @Test("Taps emit intent without prematurely committing selection")
     func intent() throws {
-        let bar = PagerTabBar(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
+        let bar = PagerTabBar(frame: CGRect(
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 44
+        ))
         bar.setItems([.init(id: "a", title: "精选"), .init(id: "b", title: "发现")], selectedPageId: "a")
         var intent: PagerPageId?
         bar.onSelect = { intent = $0 }
@@ -34,7 +39,12 @@ struct PagerTabBarTests {
 
     @Test("Equal distribution uses the same width even when one title exceeds its share")
     func equalWidths() throws {
-        let bar = PagerTabBar(frame: CGRect(x: 0, y: 0, width: 160, height: 44))
+        let bar = PagerTabBar(frame: CGRect(
+            x: 0,
+            y: 0,
+            width: 160,
+            height: 44
+        ))
         var configuration = PagerTabBar.Configuration()
         configuration.distributesItemsEqually = true
         bar.configuration = configuration
@@ -48,13 +58,22 @@ struct PagerTabBarTests {
 
     @Test("Indicator interpolates and a cancelled transition restores source selection")
     func transition() throws {
-        let bar = PagerTabBar(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
+        let bar = PagerTabBar(frame: CGRect(
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 44
+        ))
         bar.setItems([.init(id: "a", title: "A"), .init(id: "b", title: "Long title")], selectedPageId: "a")
         bar.layoutIfNeeded()
         let scroll = try #require(bar.subviews.first as? UIScrollView)
         let indicator = try #require(scroll.subviews.first { !($0 is UIButton) && $0.layer.cornerRadius > 0 })
         let start = indicator.frame
-        let transition = PagerTransition(source: "a", destination: "b", progress: 0.5)
+        let transition = PagerTransition(
+            source: "a",
+            destination: "b",
+            progress: 0.5
+        )
         bar.displayTransition(transition)
         let middle = indicator.frame
         bar.setSelection("b")

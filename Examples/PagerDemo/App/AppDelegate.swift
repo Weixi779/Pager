@@ -16,7 +16,11 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {}
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 
-    func scene(_ scene: UIScene, willConnectTo _: UISceneSession, options _: UIScene.ConnectionOptions) {
+    func scene(
+        _ scene: UIScene,
+        willConnectTo _: UISceneSession,
+        options _: UIScene.ConnectionOptions
+    ) {
         guard let windowScene = scene as? UIWindowScene else { return }
         let window = UIWindow(windowScene: windowScene)
         if ProcessInfo.processInfo.arguments.contains("--swiftui-host") {
@@ -48,7 +52,11 @@ final class DemoViewController: UIViewController {
         let resize = UIButton(type: .system)
         resize.setTitle("变更头部高度", for: .normal)
         resize.accessibilityIdentifier = "resizeHeader"
-        resize.addTarget(self, action: #selector(resizeHeader), for: .touchUpInside)
+        resize.addTarget(
+            self,
+            action: #selector(resizeHeader),
+            for: .touchUpInside
+        )
         resize.translatesAutoresizingMaskIntoConstraints = false
         header.addSubview(resize)
         NSLayoutConstraint.activate([
@@ -63,7 +71,8 @@ final class DemoViewController: UIViewController {
                 PagerPage(id: PagerPageId(id)) { DemoListViewController(id: id, rowCount: count) }
             },
             items: descriptors.map { .init(id: PagerPageId($0.0), title: $0.1) },
-            headerView: header, headerHeight: 200,
+            headerView: header,
+            headerHeight: 200,
             scrollViewProvider: { _, controller in (controller as! DemoListViewController).tableView }
         )
         sticky.tabBar.backgroundColor = .systemBackground
@@ -121,7 +130,11 @@ final class DemoListViewController: UITableViewController {
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "row")
         let refresh = UIRefreshControl()
         refresh.accessibilityIdentifier = "refresh-" + pageId
-        refresh.addTarget(self, action: #selector(refreshCurrentPage), for: .valueChanged)
+        refresh.addTarget(
+            self,
+            action: #selector(refreshCurrentPage),
+            for: .valueChanged
+        )
         refreshControl = refresh
         updateRefreshStatus()
     }

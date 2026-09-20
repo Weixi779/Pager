@@ -39,7 +39,11 @@ public struct PagerTransition: Equatable {
     public let destination: PagerPageId
     public let progress: CGFloat
 
-    public init(source: PagerPageId, destination: PagerPageId, progress: CGFloat) {
+    public init(
+        source: PagerPageId,
+        destination: PagerPageId,
+        progress: CGFloat
+    ) {
         self.source = source
         self.destination = destination
         self.progress = progress.isFinite ? min(max(progress, 0), 1) : 0

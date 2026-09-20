@@ -30,11 +30,17 @@ struct PagerNativeIntegrationTests {
         let sticky = StickyPagerViewController(
             pages: [.init(id: "a") { page }, .init(id: "b") { otherPage }],
             items: [.init(id: "a", title: "A"), .init(id: "b", title: "B")],
-            headerView: UIView(), headerHeight: 200,
+            headerView: UIView(),
+            headerHeight: 200,
             scrollViewProvider: { id, _ in id == "a" ? scroll : otherScroll }
         )
         sticky.loadViewIfNeeded()
-        sticky.view.frame = CGRect(x: 0, y: 0, width: 320, height: 640)
+        sticky.view.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 640
+        )
         let window = UIWindow(frame: sticky.view.frame)
         window.addSubview(sticky.view)
         window.isHidden = false
@@ -76,7 +82,12 @@ struct PagerNativeIntegrationTests {
         let pages: [PagerPage] = [.init(id: "a") { a }, .init(id: "b") { b }]
         let pager = PagerViewController(pages: pages)
         pager.loadViewIfNeeded()
-        pager.view.frame = CGRect(x: 0, y: 0, width: 320, height: 640)
+        pager.view.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 640
+        )
         let window = UIWindow(frame: pager.view.frame)
         window.rootViewController = pager
         window.isHidden = false
@@ -101,9 +112,19 @@ struct PagerNativeIntegrationTests {
         let encoding = method_getTypeEncoding(method)
         // Main-actor synchronous scope: no suspension or other test can interleave
         // while this class-local spy is installed. Always restore UIKit's method.
-        class_replaceMethod(PagerViewController.self, selector, spyImplementation, encoding)
+        class_replaceMethod(
+            PagerViewController.self,
+            selector,
+            spyImplementation,
+            encoding
+        )
         defer {
-            class_replaceMethod(PagerViewController.self, selector, original, encoding)
+            class_replaceMethod(
+                PagerViewController.self,
+                selector,
+                original,
+                encoding
+            )
             imp_removeBlock(spyImplementation)
         }
         pager.selectPage("b", animated: false)
@@ -123,9 +144,13 @@ struct PagerNativeIntegrationTests {
     @Test("Collection section headers pin immediately below navigation")
     func collectionSectionPinning() throws {
         let page = NativeCollectionPage()
-        try checkSectionPinning(page: page, scrollView: page.collectionView) {
+        try checkSectionPinning(
+            page: page,
+            scrollView: page.collectionView
+        ) {
             let attributes = try #require(page.collectionView.collectionViewLayout.layoutAttributesForSupplementaryView(
-                ofKind: UICollectionView.elementKindSectionHeader, at: IndexPath(item: 0, section: 0)
+                ofKind: UICollectionView.elementKindSectionHeader,
+                at: IndexPath(item: 0, section: 0)
             ))
             return attributes.frame
         }
@@ -134,19 +159,33 @@ struct PagerNativeIntegrationTests {
     @Test("Plain table section headers pin immediately below navigation")
     func tableSectionPinning() throws {
         let page = NativeTablePage(style: .plain)
-        try checkSectionPinning(page: page, scrollView: page.tableView) {
+        try checkSectionPinning(
+            page: page,
+            scrollView: page.tableView
+        ) {
             try #require(page.tableView.headerView(forSection: 0)).frame
         }
     }
 
-    private func checkSectionPinning(page: UIViewController, scrollView: UIScrollView,
-                                     sectionFrame: () throws -> CGRect) throws {
+    private func checkSectionPinning(
+        page: UIViewController,
+        scrollView: UIScrollView,
+        sectionFrame: () throws -> CGRect
+    ) throws {
         let sticky = StickyPagerViewController(
-            pages: [.init(id: "a") { page }], items: [.init(id: "a", title: "A")],
-            headerView: UIView(), headerHeight: 200, scrollViewProvider: { _, _ in scrollView }
+            pages: [.init(id: "a") { page }],
+            items: [.init(id: "a", title: "A")],
+            headerView: UIView(),
+            headerHeight: 200,
+            scrollViewProvider: { _, _ in scrollView }
         )
         sticky.loadViewIfNeeded()
-        sticky.view.frame = CGRect(x: 0, y: 0, width: 320, height: 640)
+        sticky.view.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 640
+        )
         let window = UIWindow(frame: sticky.view.frame)
         window.addSubview(sticky.view)
         window.isHidden = false
@@ -216,7 +255,11 @@ private final class NativeCollectionPage: UICollectionViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         collectionView.register(UICollectionViewCell.self, forCellWithReuseIdentifier: "cell")
-        collectionView.register(UICollectionReusableView.self, forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader, withReuseIdentifier: "header")
+        collectionView.register(
+            UICollectionReusableView.self,
+            forSupplementaryViewOfKind: UICollectionView.elementKindSectionHeader,
+            withReuseIdentifier: "header"
+        )
     }
 
     override func collectionView(_: UICollectionView, numberOfItemsInSection _: Int) -> Int {
@@ -227,8 +270,16 @@ private final class NativeCollectionPage: UICollectionViewController {
         collectionView.dequeueReusableCell(withReuseIdentifier: "cell", for: indexPath)
     }
 
-    override func collectionView(_ collectionView: UICollectionView, viewForSupplementaryElementOfKind kind: String, at indexPath: IndexPath) -> UICollectionReusableView {
-        collectionView.dequeueReusableSupplementaryView(ofKind: kind, withReuseIdentifier: "header", for: indexPath)
+    override func collectionView(
+        _ collectionView: UICollectionView,
+        viewForSupplementaryElementOfKind kind: String,
+        at indexPath: IndexPath
+    ) -> UICollectionReusableView {
+        collectionView.dequeueReusableSupplementaryView(
+            ofKind: kind,
+            withReuseIdentifier: "header",
+            for: indexPath
+        )
     }
 }
 

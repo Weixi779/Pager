@@ -31,10 +31,15 @@ public final class StickyPagerViewController<Navigation: PagerNavigationPresenti
 
     /// Initial page identities and navigation order must match; selection must belong
     /// to those pages. Heights must be finite and nonnegative. These are caller contracts.
-    public init(pages: [PagerPage], tabBar: Navigation, headerView: UIView,
-                headerHeight: CGFloat, tabBarHeight: CGFloat = 44,
-                selectedPageId: PagerPageId? = nil,
-                scrollViewProvider: @escaping (PagerPageId, UIViewController) -> UIScrollView) {
+    public init(
+        pages: [PagerPage],
+        tabBar: Navigation,
+        headerView: UIView,
+        headerHeight: CGFloat,
+        tabBarHeight: CGFloat = 44,
+        selectedPageId: PagerPageId? = nil,
+        scrollViewProvider: @escaping (PagerPageId, UIViewController) -> UIScrollView
+    ) {
         pagerController = PagerViewController(pages: pages, selectedPageId: selectedPageId)
         self.tabBar = tabBar
         self.headerView = headerView
@@ -57,8 +62,12 @@ public final class StickyPagerViewController<Navigation: PagerNavigationPresenti
         view.addSubview(viewport)
         chrome.addSubview(headerView)
         chrome.addSubview(tabBar)
-        coordinator = StickyScrollCoordinator(chrome: chrome, overlay: viewport,
-                                              headerHeight: headerHeight, tabBarHeight: tabBarHeight)
+        coordinator = StickyScrollCoordinator(
+            chrome: chrome,
+            overlay: viewport,
+            headerHeight: headerHeight,
+            tabBarHeight: tabBarHeight
+        )
         pagerController.onPreparePage = { [weak self] id, controller in
             self?.attachPage(id: id, controller: controller)
         }
@@ -83,8 +92,18 @@ public final class StickyPagerViewController<Navigation: PagerNavigationPresenti
         pagerController.view.frame = viewport.bounds
         pagerController.view.setNeedsLayout()
         pagerController.view.layoutIfNeeded()
-        headerView.frame = CGRect(x: 0, y: 0, width: pagerController.view.bounds.width, height: headerHeight)
-        tabBar.frame = CGRect(x: 0, y: headerHeight, width: pagerController.view.bounds.width, height: tabBarHeight)
+        headerView.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: pagerController.view.bounds.width,
+            height: headerHeight
+        )
+        tabBar.frame = CGRect(
+            x: 0,
+            y: headerHeight,
+            width: pagerController.view.bounds.width,
+            height: tabBarHeight
+        )
         coordinator?.layout()
     }
 
@@ -108,7 +127,12 @@ public final class StickyPagerViewController<Navigation: PagerNavigationPresenti
     /// Replace pages while keeping the existing navigation contents and order.
     @discardableResult
     public func setPages(_ pages: [PagerPage], selectedPageId: PagerPageId? = nil) -> Bool {
-        setPages(pages, navigationPageIds: tabBar.pageIds, selectedPageId: selectedPageId, updateNavigation: { _ in })
+        setPages(
+            pages,
+            navigationPageIds: tabBar.pageIds,
+            selectedPageId: selectedPageId,
+            updateNavigation: { _ in }
+        )
     }
 
     /// Replace pages and navigation contents before publishing selection events.
@@ -117,12 +141,19 @@ public final class StickyPagerViewController<Navigation: PagerNavigationPresenti
     /// order, without emitting selection intent. Configure display data here;
     /// the container applies the committed selection immediately afterwards.
     @discardableResult
-    public func setPages(_ pages: [PagerPage], navigationPageIds: [PagerPageId],
-                         selectedPageId: PagerPageId? = nil, updateNavigation: (Navigation) -> Void) -> Bool {
+    public func setPages(
+        _ pages: [PagerPage],
+        navigationPageIds: [PagerPageId],
+        selectedPageId: PagerPageId? = nil,
+        updateNavigation: (Navigation) -> Void
+    ) -> Bool {
         guard pages.map(\.id) == navigationPageIds else {
             return PagerDiagnostics.reject("Navigation identities must match the page order.")
         }
-        return pagerController.setPages(pages, selectedPageId: selectedPageId) {
+        return pagerController.setPages(
+            pages,
+            selectedPageId: selectedPageId
+        ) {
             updateNavigation(tabBar)
             tabBar.setSelection(pagerController.selectedPageId)
             baseInsets = baseInsets.filter { pagerController.pageIds.contains($0.key) }
@@ -158,21 +189,40 @@ public final class StickyPagerViewController<Navigation: PagerNavigationPresenti
 }
 
 public extension StickyPagerViewController where Navigation == PagerTabBar {
-    convenience init(pages: [PagerPage], items: [PagerTabBar.Item], headerView: UIView,
-                     headerHeight: CGFloat, tabBarHeight: CGFloat = 44,
-                     selectedPageId: PagerPageId? = nil,
-                     scrollViewProvider: @escaping (PagerPageId, UIViewController) -> UIScrollView) {
+    convenience init(
+        pages: [PagerPage],
+        items: [PagerTabBar.Item],
+        headerView: UIView,
+        headerHeight: CGFloat,
+        tabBarHeight: CGFloat = 44,
+        selectedPageId: PagerPageId? = nil,
+        scrollViewProvider: @escaping (PagerPageId, UIViewController) -> UIScrollView
+    ) {
         let tabBar = PagerTabBar()
         tabBar.applyValidatedItems(items, selectedPageId: selectedPageId)
-        self.init(pages: pages, tabBar: tabBar, headerView: headerView,
-                  headerHeight: headerHeight, tabBarHeight: tabBarHeight,
-                  selectedPageId: selectedPageId, scrollViewProvider: scrollViewProvider)
+        self.init(
+            pages: pages,
+            tabBar: tabBar,
+            headerView: headerView,
+            headerHeight: headerHeight,
+            tabBarHeight: tabBarHeight,
+            selectedPageId: selectedPageId,
+            scrollViewProvider: scrollViewProvider
+        )
     }
 
     /// Replace pages and the default tab bar's items as one validated update.
     @discardableResult
-    func setPages(_ pages: [PagerPage], items: [PagerTabBar.Item], selectedPageId: PagerPageId? = nil) -> Bool {
-        setPages(pages, navigationPageIds: items.map(\.id), selectedPageId: selectedPageId) { tabBar in
+    func setPages(
+        _ pages: [PagerPage],
+        items: [PagerTabBar.Item],
+        selectedPageId: PagerPageId? = nil
+    ) -> Bool {
+        setPages(
+            pages,
+            navigationPageIds: items.map(\.id),
+            selectedPageId: selectedPageId
+        ) { tabBar in
             tabBar.applyValidatedItems(items, selectedPageId: nil)
         }
     }

@@ -16,7 +16,11 @@ public final class PagerTabBar: UIView, PagerNavigationPresenting {
         public var title: String
         public var accessibilityLabel: String?
 
-        public init(id: PagerPageId, title: String, accessibilityLabel: String? = nil) {
+        public init(
+            id: PagerPageId,
+            title: String,
+            accessibilityLabel: String? = nil
+        ) {
             self.id = id
             self.title = title
             self.accessibilityLabel = accessibilityLabel
@@ -94,7 +98,11 @@ public final class PagerTabBar: UIView, PagerNavigationPresenting {
             button.setTitle(item.title, for: .normal)
             button.accessibilityLabel = item.accessibilityLabel ?? item.title
             button.titleLabel?.adjustsFontForContentSizeCategory = true
-            button.addTarget(self, action: #selector(didTap(_:)), for: .touchUpInside)
+            button.addTarget(
+                self,
+                action: #selector(didTap(_:)),
+                for: .touchUpInside
+            )
             scrollView.addSubview(button)
             return button
         }
@@ -129,15 +137,22 @@ public final class PagerTabBar: UIView, PagerNavigationPresenting {
         let available = max(0, bounds.width - 2 * inset - CGFloat(max(0, items.count - 1)) * spacing)
         let widths = items.map { item -> CGFloat in
             let title = item.title as NSString
-            let textWidth = max(title.size(withAttributes: [.font: configuration.font]).width,
-                                title.size(withAttributes: [.font: configuration.selectedFont]).width)
+            let textWidth = max(
+                title.size(withAttributes: [.font: configuration.font]).width,
+                title.size(withAttributes: [.font: configuration.selectedFont]).width
+            )
             return max(configuration.minimumItemWidth, ceil(textWidth))
         }
         let equalWidth = max(widths.max() ?? 0, available / CGFloat(max(1, items.count)))
         var x = inset
         for (index, button) in buttons.enumerated() {
             let width = configuration.distributesItemsEqually ? equalWidth : widths[index]
-            button.frame = CGRect(x: x, y: 0, width: width, height: bounds.height)
+            button.frame = CGRect(
+                x: x,
+                y: 0,
+                width: width,
+                height: bounds.height
+            )
             x += width + spacing
         }
         scrollView.contentSize = CGSize(width: max(bounds.width, x - (items.isEmpty ? 0 : spacing) + inset), height: bounds.height)
@@ -155,8 +170,12 @@ public final class PagerTabBar: UIView, PagerNavigationPresenting {
         }
         let progress = min(max(displayedTransition?.progress ?? 0, 0), 1)
         indicator.isHidden = configuration.indicatorHeight <= 0
-        indicator.frame = CGRect(x: from.minX + (to.minX - from.minX) * progress,
-                                 y: from.minY, width: from.width + (to.width - from.width) * progress, height: from.height)
+        indicator.frame = CGRect(
+            x: from.minX + (to.minX - from.minX) * progress,
+            y: from.minY,
+            width: from.width + (to.width - from.width) * progress,
+            height: from.height
+        )
         indicator.backgroundColor = configuration.indicatorColor
         indicator.layer.cornerRadius = indicator.bounds.height / 2
         scrollView.bringSubviewToFront(indicator)
@@ -167,8 +186,12 @@ public final class PagerTabBar: UIView, PagerNavigationPresenting {
         let button = buttons[index]
         let width = max(0, configuration.indicatorWidth ?? (items[index].title as NSString).size(withAttributes: [.font: configuration.selectedFont]).width)
         let height = max(0, configuration.indicatorHeight)
-        return CGRect(x: button.frame.midX - width / 2,
-                      y: bounds.height - height - configuration.indicatorBottomInset, width: width, height: height)
+        return CGRect(
+            x: button.frame.midX - width / 2,
+            y: bounds.height - height - configuration.indicatorBottomInset,
+            width: width,
+            height: height
+        )
     }
 
     private func updateButtons() {

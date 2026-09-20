@@ -65,7 +65,8 @@ struct PagerPublicAPITests {
                 return controller
             } },
             items: [.init(id: "a", title: "A"), .init(id: "b", title: "B")],
-            headerView: UIView(), headerHeight: 200,
+            headerView: UIView(),
+            headerHeight: 200,
             scrollViewProvider: { _, controller in controller.view as! UIScrollView }
         )
         sticky.loadViewIfNeeded()

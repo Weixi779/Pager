@@ -2,4 +2,11 @@
 --swiftversion 6.0
 --exclude .build,.swiftpm
 --self remove
---disable wrapArguments,wrapAttributes,wrapMultilineStatementBraces
+--acronyms URL,UUID
+--disable wrapAttributes,wrapMultilineStatementBraces
+--wraparguments before-first
+--wrapparameters before-first
+--allow-partial-wrapping false
+--closingparen balanced
+--callsiteparen balanced
+--trailingcommas collections-only

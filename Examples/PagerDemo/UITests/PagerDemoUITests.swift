@@ -50,7 +50,11 @@ final class PagerDemoUITests: XCTestCase {
             forDuration: 0.05,
             thenDragTo: table.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.52))
         )
-        XCTAssertEqual(table.value as? String, "refreshes:0", "Partial header expansion must not refresh")
+        XCTAssertEqual(
+            table.value as? String,
+            "refreshes:0",
+            "Partial header expansion must not refresh"
+        )
         pullToRefresh(table)
         let refreshed = NSPredicate(format: "value == %@", "refreshes:1")
         expectation(for: refreshed, evaluatedWith: table)

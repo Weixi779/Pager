@@ -35,7 +35,11 @@ struct PagerStateHandoffTests {
     @Test("Adding a header to a deeply scrolled page keeps shared collapse consistent")
     func zeroHeightToVisibleHeader() throws {
         let a = HandoffScrollPage(), b = HandoffScrollPage()
-        let sticky = makeSticky(a: a, b: b, headerHeight: 0)
+        let sticky = makeSticky(
+            a: a,
+            b: b,
+            headerHeight: 0
+        )
         layout(sticky)
         a.scroll.contentOffset.y = 300
         sticky.setHeaderHeight(200)
@@ -90,7 +94,12 @@ struct PagerStateHandoffTests {
     @Test("Reusing a retained page in a new composite is not overwritten by old asynchronous cleanup")
     func immediatePageReuse() async throws {
         let page = HandoffScrollPage()
-        let originalInset = UIEdgeInsets(top: 12, left: 3, bottom: 18, right: 4)
+        let originalInset = UIEdgeInsets(
+            top: 12,
+            left: 3,
+            bottom: 18,
+            right: 4
+        )
         page.scroll.contentInset = originalInset
         weak var oldWrapper: StickyPagerViewController<PagerTabBar>?
         autoreleasepool {
@@ -118,26 +127,38 @@ struct PagerStateHandoffTests {
         #expect(!page.scroll.alwaysBounceVertical)
     }
 
-    private func makeSticky(a: HandoffScrollPage, b: HandoffScrollPage, headerHeight: CGFloat = 200) -> StickyPagerViewController<PagerTabBar> {
+    private func makeSticky(
+        a: HandoffScrollPage,
+        b: HandoffScrollPage,
+        headerHeight: CGFloat = 200
+    ) -> StickyPagerViewController<PagerTabBar> {
         StickyPagerViewController(
             pages: [PagerPage(id: "a") { a }, PagerPage(id: "b") { b }],
             items: [.init(id: "a", title: "A"), .init(id: "b", title: "B")],
-            headerView: UIView(), headerHeight: headerHeight,
+            headerView: UIView(),
+            headerHeight: headerHeight,
             scrollViewProvider: { _, controller in (controller as! HandoffScrollPage).scroll }
         )
     }
 
     private func singleSticky(page: HandoffScrollPage) -> StickyPagerViewController<PagerTabBar> {
         StickyPagerViewController(
-            pages: [PagerPage(id: "a") { page }], items: [.init(id: "a", title: "A")],
-            headerView: UIView(), headerHeight: 200,
+            pages: [PagerPage(id: "a") { page }],
+            items: [.init(id: "a", title: "A")],
+            headerView: UIView(),
+            headerHeight: 200,
             scrollViewProvider: { _, controller in (controller as! HandoffScrollPage).scroll }
         )
     }
 
     private func layout(_ controller: UIViewController) {
         controller.loadViewIfNeeded()
-        controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 640)
+        controller.view.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 640
+        )
         controller.view.setNeedsLayout()
         controller.view.layoutIfNeeded()
     }

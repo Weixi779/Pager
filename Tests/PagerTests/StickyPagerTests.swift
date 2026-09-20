@@ -19,7 +19,12 @@ struct StickyPagerTests {
         scroll.contentInset.top = baseTop
         let overlay = UIView(frame: scroll.bounds), chrome = UIView()
         overlay.addSubview(scroll)
-        let coordinator = StickyScrollCoordinator(chrome: chrome, overlay: overlay, headerHeight: 200, tabBarHeight: 44)
+        let coordinator = StickyScrollCoordinator(
+            chrome: chrome,
+            overlay: overlay,
+            headerHeight: 200,
+            tabBarHeight: 44
+        )
         coordinator.attach(scroll, id: "a")
         coordinator.activate("a")
         defer { coordinator.detachAll() }
@@ -42,7 +47,12 @@ struct StickyPagerTests {
     func continuousGeometry() {
         let scroll = list(height: 1200)
         let chrome = UIView(), overlay = UIView(frame: scroll.bounds)
-        let coordinator = StickyScrollCoordinator(chrome: chrome, overlay: overlay, headerHeight: 200, tabBarHeight: 44)
+        let coordinator = StickyScrollCoordinator(
+            chrome: chrome,
+            overlay: overlay,
+            headerHeight: 200,
+            tabBarHeight: 44
+        )
         coordinator.attach(scroll, id: "a")
         coordinator.activate("a")
         #expect(scroll.contentInset.top == 244)
@@ -60,7 +70,12 @@ struct StickyPagerTests {
     @Test("Short and empty lists can reach the pinned position without changing content size", arguments: [CGFloat(0), 80, 400])
     func shortLists(_ contentHeight: CGFloat) {
         let scroll = list(height: contentHeight)
-        let coordinator = StickyScrollCoordinator(chrome: UIView(), overlay: UIView(), headerHeight: 200, tabBarHeight: 44)
+        let coordinator = StickyScrollCoordinator(
+            chrome: UIView(),
+            overlay: UIView(),
+            headerHeight: 200,
+            tabBarHeight: 44
+        )
         coordinator.attach(scroll, id: "a")
         coordinator.activate("a")
         #expect(scroll.contentSize.height == contentHeight)
@@ -74,7 +89,12 @@ struct StickyPagerTests {
         let a = list(height: 1600), b = list(height: 1600)
         let overlay = UIView(frame: a.bounds), chrome = UIView()
         overlay.addSubview(a)
-        let coordinator = StickyScrollCoordinator(chrome: chrome, overlay: overlay, headerHeight: 200, tabBarHeight: 44)
+        let coordinator = StickyScrollCoordinator(
+            chrome: chrome,
+            overlay: overlay,
+            headerHeight: 200,
+            tabBarHeight: 44
+        )
         coordinator.attach(a, id: "a"); coordinator.attach(b, id: "b")
         coordinator.activate("a")
         a.contentOffset.y = -144
@@ -94,7 +114,12 @@ struct StickyPagerTests {
     @Test("Pinned switching preserves reading; expanded switching aligns the shared header")
     func readingPosition() {
         let a = list(height: 1600), b = list(height: 1600)
-        let coordinator = StickyScrollCoordinator(chrome: UIView(), overlay: UIView(), headerHeight: 200, tabBarHeight: 44)
+        let coordinator = StickyScrollCoordinator(
+            chrome: UIView(),
+            overlay: UIView(),
+            headerHeight: 200,
+            tabBarHeight: 44
+        )
         coordinator.attach(a, id: "a"); coordinator.attach(b, id: "b")
         coordinator.activate("a")
         a.contentOffset.y = 500
@@ -111,17 +136,37 @@ struct StickyPagerTests {
     @Test("Native refresh inset and feature inset survive geometry changes and detach")
     func insetOwnership() {
         let scroll = list(height: 1200)
-        scroll.contentInset = UIEdgeInsets(top: 12, left: 3, bottom: 18, right: 4)
-        let coordinator = StickyScrollCoordinator(chrome: UIView(), overlay: UIView(), headerHeight: 200, tabBarHeight: 44)
+        scroll.contentInset = UIEdgeInsets(
+            top: 12,
+            left: 3,
+            bottom: 18,
+            right: 4
+        )
+        let coordinator = StickyScrollCoordinator(
+            chrome: UIView(),
+            overlay: UIView(),
+            headerHeight: 200,
+            tabBarHeight: 44
+        )
         coordinator.attach(scroll, id: "a")
         coordinator.activate("a")
         scroll.contentInset.top += 60 // Native refresh control's temporary contribution.
         coordinator.updateGeometry(headerHeight: 100, tabBarHeight: 44)
         #expect(scroll.contentInset.top == 216)
-        coordinator.setBaseInset(UIEdgeInsets(top: 20, left: 5, bottom: 25, right: 6), for: "a")
+        coordinator.setBaseInset(UIEdgeInsets(
+            top: 20,
+            left: 5,
+            bottom: 25,
+            right: 6
+        ), for: "a")
         #expect(scroll.contentInset.top == 224)
         coordinator.detach("a")
-        #expect(scroll.contentInset == UIEdgeInsets(top: 80, left: 5, bottom: 25, right: 6))
+        #expect(scroll.contentInset == UIEdgeInsets(
+            top: 80,
+            left: 5,
+            bottom: 25,
+            right: 6
+        ))
         #expect(scroll.contentInsetAdjustmentBehavior == .automatic)
         #expect(!scroll.alwaysBounceVertical)
     }
@@ -129,7 +174,12 @@ struct StickyPagerTests {
     @Test("Header resizing preserves content reading distance after pinning")
     func headerResize() {
         let scroll = list(height: 1500)
-        let coordinator = StickyScrollCoordinator(chrome: UIView(), overlay: UIView(), headerHeight: 200, tabBarHeight: 44)
+        let coordinator = StickyScrollCoordinator(
+            chrome: UIView(),
+            overlay: UIView(),
+            headerHeight: 200,
+            tabBarHeight: 44
+        )
         coordinator.attach(scroll, id: "a"); coordinator.activate("a")
         scroll.contentOffset.y = 300
         coordinator.updateGeometry(headerHeight: 350, tabBarHeight: 44)
@@ -143,7 +193,12 @@ struct StickyPagerTests {
         let scroll = list(height: 1500)
         weak var released: StickyScrollCoordinator?
         do {
-            let coordinator = StickyScrollCoordinator(chrome: UIView(), overlay: UIView(), headerHeight: 200, tabBarHeight: 44)
+            let coordinator = StickyScrollCoordinator(
+                chrome: UIView(),
+                overlay: UIView(),
+                headerHeight: 200,
+                tabBarHeight: 44
+            )
             released = coordinator
             coordinator.attach(scroll, id: "a")
         }
@@ -160,11 +215,17 @@ struct StickyPagerTests {
         let sticky = StickyPagerViewController(
             pages: [PagerPage(id: "a") { a }, PagerPage(id: "b") { b }],
             items: [.init(id: "a", title: "精选"), .init(id: "b", title: "发现")],
-            headerView: UIView(), headerHeight: 200,
+            headerView: UIView(),
+            headerHeight: 200,
             scrollViewProvider: { _, controller in (controller as! ListPage).scrollView }
         )
         sticky.loadViewIfNeeded()
-        sticky.view.frame = CGRect(x: 0, y: 0, width: 320, height: 640)
+        sticky.view.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 640
+        )
         sticky.view.layoutIfNeeded()
         sticky.pager.selectPage("b", animated: false)
         #expect(sticky.tabBar.selectedPageId == "b")
@@ -180,7 +241,12 @@ struct StickyPagerTests {
     func detachReadingPosition() {
         let scroll = list(height: 1600)
         scroll.contentInsetAdjustmentBehavior = .never
-        let coordinator = StickyScrollCoordinator(chrome: UIView(), overlay: UIView(), headerHeight: 200, tabBarHeight: 44)
+        let coordinator = StickyScrollCoordinator(
+            chrome: UIView(),
+            overlay: UIView(),
+            headerHeight: 200,
+            tabBarHeight: 44
+        )
         coordinator.attach(scroll, id: "a")
         coordinator.activate("a")
         scroll.contentOffset.y = 300
@@ -190,7 +256,12 @@ struct StickyPagerTests {
     }
 
     private func list(height: CGFloat) -> UIScrollView {
-        let view = UIScrollView(frame: CGRect(x: 0, y: 0, width: 320, height: 640))
+        let view = UIScrollView(frame: CGRect(
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 640
+        ))
         view.contentSize = CGSize(width: 320, height: height)
         return view
     }

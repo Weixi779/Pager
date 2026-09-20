@@ -18,7 +18,12 @@ struct PagerAppearanceReentryTests {
         let a = ReentrantPage(), b = ReentrantPage()
         let pager = PagerViewController(pages: [.init(id: "a") { a }, .init(id: "b") { b }])
         pager.loadViewIfNeeded()
-        pager.view.frame = CGRect(x: 0, y: 0, width: 320, height: 640)
+        pager.view.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 640
+        )
         pager.view.layoutIfNeeded()
         pager.beginAppearanceTransition(true, animated: false)
         pager.endAppearanceTransition()
@@ -46,12 +51,16 @@ struct PagerAppearanceReentryTests {
         #expect(recorder.selections == (completes ? [PagerPageId("b")] : []))
         #expect(pager.selectedPageId == (completes ? "b" : "a"))
         #expect(recorder.eventOrder == (completes ? ["will", "finish", "select"] : ["will", "finish"]))
-        #expect(a.events == (completes
+        #expect(a.events == (
+            completes
                 ? ["willDisappear", "didDisappear"]
-                : ["willDisappear", "willAppear", "didAppear", "willDisappear", "didDisappear"]))
-        #expect(b.events == (completes
+                : ["willDisappear", "willAppear", "didAppear", "willDisappear", "didDisappear"]
+        ))
+        #expect(b.events == (
+            completes
                 ? ["willAppear", "didAppear", "willDisappear", "didDisappear"]
-                : ["willAppear", "willDisappear", "didDisappear"]))
+                : ["willAppear", "willDisappear", "didDisappear"]
+        ))
         pager.beginAppearanceTransition(true, animated: false)
         pager.endAppearanceTransition()
         #expect((pager.currentViewController as? ReentrantPage)?.events.suffix(2) == ["willAppear", "didAppear"])
@@ -89,7 +98,12 @@ struct PagerAppearanceReentryTests {
 
     @Test("Resizing reveals selection but progress updates preserve manual navigation scrolling")
     func selectedTabAfterResize() throws {
-        let bar = PagerTabBar(frame: CGRect(x: 0, y: 0, width: 640, height: 44))
+        let bar = PagerTabBar(frame: CGRect(
+            x: 0,
+            y: 0,
+            width: 640,
+            height: 44
+        ))
         bar.setItems((0 ..< 10).map { .init(id: PagerPageId("\($0)"), title: "Page \($0)") }, selectedPageId: "5")
         bar.layoutIfNeeded()
         let scroll = try #require(bar.subviews.first as? UIScrollView)
@@ -101,7 +115,11 @@ struct PagerAppearanceReentryTests {
         #expect(scroll.bounds.contains(selected.frame))
         scroll.contentOffset.x = 0
         let manualOffset = scroll.contentOffset
-        bar.displayTransition(.init(source: "5", destination: "6", progress: 0.5))
+        bar.displayTransition(.init(
+            source: "5",
+            destination: "6",
+            progress: 0.5
+        ))
         #expect(scroll.contentOffset == manualOffset)
         bar.setNeedsLayout()
         bar.layoutIfNeeded()

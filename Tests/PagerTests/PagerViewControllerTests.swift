@@ -238,7 +238,12 @@ struct PagerViewControllerTests {
 
     private func layout(_ controller: UIViewController) {
         controller.loadViewIfNeeded()
-        controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 640)
+        controller.view.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 640
+        )
         controller.view.setNeedsLayout()
         controller.view.layoutIfNeeded()
     }

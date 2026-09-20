@@ -46,7 +46,11 @@ final class ScrollPageHost: UIView, UIScrollViewDelegate {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func configure(pageCount: Int, views: [Int: UIView], selectedIndex: Int) {
+    func configure(
+        pageCount: Int,
+        views: [Int: UIView],
+        selectedIndex: Int
+    ) {
         self.pageCount = pageCount
         mounted = views
         layoutPages(selectedIndex: selectedIndex)
@@ -55,7 +59,12 @@ final class ScrollPageHost: UIView, UIScrollViewDelegate {
     func mount(_ view: UIView, at index: Int) {
         mounted[index] = view
         if view.superview !== scrollView { scrollView.addSubview(view) }
-        view.frame = CGRect(x: CGFloat(index) * pageWidth, y: 0, width: pageWidth, height: bounds.height)
+        view.frame = CGRect(
+            x: CGFloat(index) * pageWidth,
+            y: 0,
+            width: pageWidth,
+            height: bounds.height
+        )
     }
 
     func layoutPages(selectedIndex: Int) {
@@ -63,7 +72,12 @@ final class ScrollPageHost: UIView, UIScrollViewDelegate {
         scrollView.frame = bounds
         scrollView.contentSize = CGSize(width: pageWidth * CGFloat(pageCount), height: bounds.height)
         for (index, view) in mounted {
-            view.frame = CGRect(x: CGFloat(index) * pageWidth, y: 0, width: pageWidth, height: bounds.height)
+            view.frame = CGRect(
+                x: CGFloat(index) * pageWidth,
+                y: 0,
+                width: pageWidth,
+                height: bounds.height
+            )
         }
         scrollView.setContentOffset(CGPoint(x: CGFloat(selectedIndex) * pageWidth, y: 0), animated: false)
         isPositioning = false

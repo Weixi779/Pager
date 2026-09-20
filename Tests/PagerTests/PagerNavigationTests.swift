@@ -24,13 +24,22 @@ struct PagerNavigationTests {
         #expect(navigation.selection == "b")
         #expect(sticky.tabBar === navigation)
         #expect(navigation.superview === sticky.headerView.superview)
-        #expect(navigation.frame == CGRect(x: 0, y: 200, width: 320, height: 44))
+        #expect(navigation.frame == CGRect(
+            x: 0,
+            y: 200,
+            width: 320,
+            height: 44
+        ))
 
         navigation.onSelect?("a")
         #expect(sticky.pager.selectedPageId == "a")
         #expect(navigation.selection == "a")
         (sticky.pager as! PagerViewController).host.scrollView.contentOffset.x = 160
-        #expect(navigation.transition == PagerTransition(source: "a", destination: "b", progress: 0.5))
+        #expect(navigation.transition == PagerTransition(
+            source: "a",
+            destination: "b",
+            progress: 0.5
+        ))
         #expect(navigation.selection == "a")
         (sticky.pager as! PagerViewController).host.scrollView.contentOffset.x = 0
         #expect(navigation.transition == nil)
@@ -52,7 +61,10 @@ struct PagerNavigationTests {
             #expect(sticky.pager.pageIds == ids)
             #expect(navigation.selection == id)
         }
-        sticky.setPages(pages(ids), navigationPageIds: ids) { $0.pageIds = ids }
+        sticky.setPages(
+            pages(ids),
+            navigationPageIds: ids
+        ) { $0.pageIds = ids }
         #expect(callbacks == 1)
         #expect(navigation.selection == ids.first)
         #expect(sticky.tabBar === navigation)
@@ -64,12 +76,29 @@ struct PagerNavigationTests {
         let sticky = makeSticky(navigation)
         layout(sticky)
         let unexpectedUpdate: (NavigationView) -> Void = { _ in Issue.record("Rejected update configured navigation") }
-        #expect(!sticky.setPages(pages(["c"]), navigationPageIds: ["d"], updateNavigation: unexpectedUpdate))
-        #expect(!sticky.setPages(pages(["c", "c"]), navigationPageIds: ["c", "c"], updateNavigation: unexpectedUpdate))
-        #expect(!sticky.setPages(pages(["c"]), navigationPageIds: ["c"], selectedPageId: "missing", updateNavigation: unexpectedUpdate))
+        #expect(!sticky.setPages(
+            pages(["c"]),
+            navigationPageIds: ["d"],
+            updateNavigation: unexpectedUpdate
+        ))
+        #expect(!sticky.setPages(
+            pages(["c", "c"]),
+            navigationPageIds: ["c", "c"],
+            updateNavigation: unexpectedUpdate
+        ))
+        #expect(!sticky.setPages(
+            pages(["c"]),
+            navigationPageIds: ["c"],
+            selectedPageId: "missing",
+            updateNavigation: unexpectedUpdate
+        ))
         (sticky.pager as! PagerViewController).host.scrollView.contentOffset.x = 160
         #expect(sticky.pager.isTransitioning)
-        #expect(!sticky.setPages([], navigationPageIds: [], updateNavigation: unexpectedUpdate))
+        #expect(!sticky.setPages(
+            [],
+            navigationPageIds: [],
+            updateNavigation: unexpectedUpdate
+        ))
         #expect(navigation.pageIds == ["a", "b"])
         #expect(navigation.selection == "a")
         #expect(sticky.pager.pageIds == ["a", "b"])
@@ -80,9 +109,15 @@ struct PagerNavigationTests {
         let navigation = NavigationView()
         let sticky = makeSticky(navigation)
         layout(sticky)
-        sticky.setPages(pages(["c", "d"]), navigationPageIds: ["c", "d"]) { bar in
+        sticky.setPages(
+            pages(["c", "d"]),
+            navigationPageIds: ["c", "d"]
+        ) { bar in
             bar.pageIds = ["c", "d"]
-            #expect(!sticky.setPages([], navigationPageIds: []) { _ in Issue.record("Reentrant update ran") })
+            #expect(!sticky.setPages(
+                [],
+                navigationPageIds: []
+            ) { _ in Issue.record("Reentrant update ran") })
             #expect(sticky.pager.selectPage("d", animated: false))
             #expect(sticky.pager.selectedPageId == "c")
         }
@@ -96,7 +131,11 @@ struct PagerNavigationTests {
     func eventForwarding() {
         let navigation = NavigationView()
         let presenter: any PagerNavigationPresenting = navigation
-        let transition = PagerTransition(source: "a", destination: "b", progress: 0.5)
+        let transition = PagerTransition(
+            source: "a",
+            destination: "b",
+            progress: 0.5
+        )
         presenter.receive(.willTransition(transition))
         #expect(navigation.transition == transition)
         presenter.receive(.didUpdateTransition(transition))
@@ -116,8 +155,11 @@ struct PagerNavigationTests {
             pages: ["a", "b"].map { id in
                 PagerPage(id: PagerPageId(id)) { creations += 1; return NavigationPage() }
             },
-            tabBar: navigation, headerView: UIView(), headerHeight: 200,
-            selectedPageId: "b", scrollViewProvider: { _, controller in controller.view as! UIScrollView }
+            tabBar: navigation,
+            headerView: UIView(),
+            headerHeight: 200,
+            selectedPageId: "b",
+            scrollViewProvider: { _, controller in controller.view as! UIScrollView }
         )
         #expect(navigation.selection == "b")
         #expect(sticky.pager.selectedPageId == "b")
@@ -126,9 +168,13 @@ struct PagerNavigationTests {
     }
 
     private func makeSticky(_ navigation: NavigationView) -> StickyPagerViewController<NavigationView> {
-        StickyPagerViewController(pages: pages(["a", "b"]), tabBar: navigation,
-                                  headerView: UIView(), headerHeight: 200,
-                                  scrollViewProvider: { _, controller in controller.view as! UIScrollView })
+        StickyPagerViewController(
+            pages: pages(["a", "b"]),
+            tabBar: navigation,
+            headerView: UIView(),
+            headerHeight: 200,
+            scrollViewProvider: { _, controller in controller.view as! UIScrollView }
+        )
     }
 
     private func pages(_ ids: [PagerPageId]) -> [PagerPage] {
@@ -137,7 +183,12 @@ struct PagerNavigationTests {
 
     private func layout(_ controller: UIViewController) {
         controller.loadViewIfNeeded()
-        controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 640)
+        controller.view.frame = CGRect(
+            x: 0,
+            y: 0,
+            width: 320,
+            height: 640
+        )
         controller.view.setNeedsLayout()
         controller.view.layoutIfNeeded()
     }

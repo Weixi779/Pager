@@ -223,13 +223,21 @@ public final class PagerViewController: UIViewController, PagerControlling {
     /// Call after a transition/parent appearance finishes, not from an event callback.
     @discardableResult
     public func setPages(_ pages: [PagerPage], selectedPageId: PagerPageId? = nil) -> Bool {
-        setPages(pages, selectedPageId: selectedPageId, synchronize: {})
+        setPages(
+            pages,
+            selectedPageId: selectedPageId,
+            synchronize: {}
+        )
     }
 
     /// Commit composite state before publishing events, inside the same mutation
     /// boundary so callback-driven replacements and selections keep their rules.
     @discardableResult
-    func setPages(_ pages: [PagerPage], selectedPageId: PagerPageId?, synchronize: () -> Void) -> Bool {
+    func setPages(
+        _ pages: [PagerPage],
+        selectedPageId: PagerPageId?,
+        synchronize: () -> Void
+    ) -> Bool {
         guard PageStore.validate(pages, selection: selectedPageId) else { return false }
         guard !isMutating, !isTransitioning, !host.scrollView.isDragging,
               !host.scrollView.isDecelerating, visibility != .appearing, visibility != .disappearing else {
@@ -293,7 +301,11 @@ public final class PagerViewController: UIViewController, PagerControlling {
         for (index, id) in pageIds.enumerated() {
             if let controller = store.controllers[id] { views[index] = controller.view }
         }
-        host.configure(pageCount: pageIds.count, views: views, selectedIndex: selectedIndex)
+        host.configure(
+            pageCount: pageIds.count,
+            views: views,
+            selectedIndex: selectedIndex
+        )
         updateAccessibility()
     }
 
@@ -301,7 +313,11 @@ public final class PagerViewController: UIViewController, PagerControlling {
         guard let source = selectedPageId, pageIds.indices.contains(index), pageIds[index] != source else { return }
         preparePage(at: index)
         transitionAnimated = animated
-        let value = PagerTransition(source: source, destination: pageIds[index], progress: 0)
+        let value = PagerTransition(
+            source: source,
+            destination: pageIds[index],
+            progress: 0
+        )
         transition = value
         withAppearanceForwarding {
             if visibility == .visible {
@@ -332,7 +348,11 @@ public final class PagerViewController: UIViewController, PagerControlling {
             preparePage(at: Int(ceil(bounded)))
             if let transition {
                 let progress = min(max(abs(bounded - CGFloat(origin)) / CGFloat(abs(index - origin)), 0), 1)
-                let value = PagerTransition(source: transition.source, destination: transition.destination, progress: progress)
+                let value = PagerTransition(
+                    source: transition.source,
+                    destination: transition.destination,
+                    progress: progress
+                )
                 self.transition = value
                 emit(.didUpdateTransition(value))
             }
@@ -376,7 +396,11 @@ public final class PagerViewController: UIViewController, PagerControlling {
                 destination?.endAppearanceTransition()
             }
             updateAccessibility()
-            let final = PagerTransition(source: transition.source, destination: transition.destination, progress: completed ? 1 : 0)
+            let final = PagerTransition(
+                source: transition.source,
+                destination: transition.destination,
+                progress: completed ? 1 : 0
+            )
             emit(.didFinishTransition(final, completed: completed))
             if completed {
                 setNeedsStatusBarAppearanceUpdate()

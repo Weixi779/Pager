@@ -87,7 +87,12 @@ final class StickyScrollCoordinator {
 
     private(set) var geometry: StickyScrollGeometry
 
-    init(chrome: UIView, overlay: UIView, headerHeight: CGFloat, tabBarHeight: CGFloat) {
+    init(
+        chrome: UIView,
+        overlay: UIView,
+        headerHeight: CGFloat,
+        tabBarHeight: CGFloat
+    ) {
         self.chrome = chrome
         self.overlay = overlay
         geometry = StickyScrollGeometry(headerHeight: headerHeight, tabBarHeight: tabBarHeight)
@@ -118,7 +123,10 @@ final class StickyScrollCoordinator {
         scrollView.contentOffset.y = -attachment.restingTop + originalDistance
         updateInsets(attachment)
         attachment.observations = [
-            scrollView.observe(\.contentOffset, options: [.new]) { [weak self, weak attachment] _, _ in
+            scrollView.observe(
+                \.contentOffset,
+                options: [.new]
+            ) { [weak self, weak attachment] _, _ in
                 // UIKit mutations and synchronous KVO delivery occur on the main
                 // actor. Keep delivery synchronous to avoid a one-frame header lag.
                 MainActor.assumeIsolated {
@@ -126,7 +134,10 @@ final class StickyScrollCoordinator {
                     self.didScroll(id: id)
                 }
             },
-            scrollView.observe(\.contentSize, options: [.new]) { [weak self, weak attachment] _, _ in
+            scrollView.observe(
+                \.contentSize,
+                options: [.new]
+            ) { [weak self, weak attachment] _, _ in
                 MainActor.assumeIsolated {
                     guard let self, let attachment, !attachment.isUpdating else { return }
                     self.updateInsets(attachment)
@@ -225,7 +236,8 @@ final class StickyScrollCoordinator {
         attachment.isUpdating = true
         attachment.scrollView.contentOffset.y = geometry.activationOffset(
             currentOffset: attachment.scrollView.contentOffset.y,
-            restingTopInset: attachment.restingTop, sharedCollapse: sharedCollapse
+            restingTopInset: attachment.restingTop,
+            sharedCollapse: sharedCollapse
         )
         attachment.isUpdating = false
         updateInsets(attachment)
@@ -241,8 +253,11 @@ final class StickyScrollCoordinator {
         // Native section headers pin against contentInset. Include only the
         // visible shared header so their pinned edge meets the navigation bar.
         let top = geometry.topContribution - collapse
-        let bottom = geometry.bottomContribution(contentHeight: scrollView.contentSize.height,
-                                                 viewportHeight: scrollView.bounds.height, baseInset: attachment.baseInset)
+        let bottom = geometry.bottomContribution(
+            contentHeight: scrollView.contentSize.height,
+            viewportHeight: scrollView.bounds.height,
+            baseInset: attachment.baseInset
+        )
         var inset = scrollView.contentInset
         // Apply only our delta, preserving native UIRefreshControl's temporary inset.
         inset.top += top - attachment.topContribution
@@ -268,7 +283,12 @@ final class StickyScrollCoordinator {
     private func layoutChrome() {
         if let origin = overlayOriginY {
             guard let overlay else { return }
-            chrome.frame = CGRect(x: 0, y: origin, width: overlay.bounds.width, height: geometry.topContribution)
+            chrome.frame = CGRect(
+                x: 0,
+                y: origin,
+                width: overlay.bounds.width,
+                height: geometry.topContribution
+            )
             return
         }
         guard let activeId, let attachment = attachments[activeId] else { return }
@@ -278,9 +298,12 @@ final class StickyScrollCoordinator {
         // the native refresh area below the bar without moving the shared header.
         // Keeping it inside the list also gives header/bar drags native scroll physics.
         let collapse = geometry.collapse(offset: scrollView.contentOffset.y, restingTopInset: attachment.restingTop)
-        chrome.frame = CGRect(x: scrollView.contentOffset.x,
-                              y: scrollView.contentOffset.y - collapse,
-                              width: scrollView.bounds.width, height: geometry.topContribution)
+        chrome.frame = CGRect(
+            x: scrollView.contentOffset.x,
+            y: scrollView.contentOffset.y - collapse,
+            width: scrollView.bounds.width,
+            height: geometry.topContribution
+        )
         scrollView.bringSubviewToFront(chrome)
     }
 }
