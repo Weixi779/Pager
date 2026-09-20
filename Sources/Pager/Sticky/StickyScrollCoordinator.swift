@@ -274,10 +274,12 @@ final class StickyScrollCoordinator {
         guard let activeId, let attachment = attachments[activeId] else { return }
         let scrollView = attachment.scrollView
         if chrome.superview !== scrollView { scrollView.addSubview(chrome) }
-        // Once collapsed, pin the tab bar by moving chrome in content coordinates.
+        // Clamp chrome between fully expanded and pinned. Further pull-down opens
+        // the native refresh area below the bar without moving the shared header.
         // Keeping it inside the list also gives header/bar drags native scroll physics.
+        let collapse = geometry.collapse(offset: scrollView.contentOffset.y, restingTopInset: attachment.restingTop)
         chrome.frame = CGRect(x: scrollView.contentOffset.x,
-                              y: max(-attachment.restingTop, scrollView.contentOffset.y - geometry.headerHeight),
+                              y: scrollView.contentOffset.y - collapse,
                               width: scrollView.bounds.width, height: geometry.topContribution)
         scrollView.bringSubviewToFront(chrome)
     }

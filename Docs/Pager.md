@@ -119,7 +119,7 @@ let sticky = StickyPagerViewController(
 
 ### 刷新
 
-Feature 在自己的主列表上安装 UIRefreshControl，处理 `.valueChanged` 并调用 `endRefreshing()`。不刷新公共头部，不因页面 appearance 发请求。列表回到顶部、公共头部完全展开后，继续下拉进入原生刷新区。
+Feature 在自己的主列表上安装 UIRefreshControl，处理 `.valueChanged` 并调用 `endRefreshing()`。不刷新公共头部，不因页面 appearance 发请求。列表回到顶部、公共头部完全展开后，继续下拉时公共头部与分类栏保持原位，列表内容下移，原生刷新指示器显示在分类栏与列表内容之间。
 
 刷新中允许切换页面；返回刷新中的页面不强制重设其偏移。自定义刷新库并未逐一适配，不能直接假定与 UIRefreshControl 相同。
 

@@ -13,6 +13,63 @@ import UIKit
 @MainActor
 @Suite("Native list and status bar integration")
 struct PagerNativeIntegrationTests {
+    @Test("Native refresh control occupies the gap below navigation", arguments: [0, 1, 2])
+    func refreshBelowNavigation(listKind: Int) throws {
+        let scroll: UIScrollView = switch listKind {
+        case 1: UITableView(frame: .zero, style: .plain)
+        case 2: UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
+        default: UIScrollView()
+        }
+        let page = UIViewController()
+        page.view = scroll
+        let otherPage = UIViewController()
+        let otherScroll = UIScrollView()
+        otherPage.view = otherScroll
+        let refresh = UIRefreshControl()
+        scroll.refreshControl = refresh
+        let sticky = StickyPagerViewController(
+            pages: [.init(id: "a") { page }, .init(id: "b") { otherPage }],
+            items: [.init(id: "a", title: "A"), .init(id: "b", title: "B")],
+            headerView: UIView(), headerHeight: 200,
+            scrollViewProvider: { id, _ in id == "a" ? scroll : otherScroll }
+        )
+        sticky.loadViewIfNeeded()
+        sticky.view.frame = CGRect(x: 0, y: 0, width: 320, height: 640)
+        let window = UIWindow(frame: sticky.view.frame)
+        window.addSubview(sticky.view)
+        window.isHidden = false
+        defer { window.isHidden = true }
+        sticky.view.layoutIfNeeded()
+        let viewport = try #require(scroll.superview)
+        let originalHeader = sticky.headerView.convert(sticky.headerView.bounds, to: viewport)
+        let originalBar = sticky.tabBar.convert(sticky.tabBar.bounds, to: viewport)
+        let restingOffset = scroll.contentOffset.y
+        scroll.contentOffset.y = restingOffset - 80
+        UIView.performWithoutAnimation {
+            refresh.beginRefreshing()
+            scroll.layoutIfNeeded()
+        }
+        #expect(refresh.isRefreshing)
+        #expect(sticky.headerView.convert(sticky.headerView.bounds, to: viewport) == originalHeader)
+        #expect(sticky.tabBar.convert(sticky.tabBar.bounds, to: viewport) == originalBar)
+        let refreshFrame = refresh.convert(refresh.bounds, to: viewport)
+        #expect(refreshFrame.height > 0)
+        #expect(refreshFrame.minY >= originalBar.maxY - 0.5)
+        #expect(refreshFrame.maxY <= scroll.convert(.zero, to: viewport).y + 0.5)
+        sticky.pager.selectPage("b", animated: false)
+        sticky.pager.selectPage("a", animated: false)
+        #expect(refresh.isRefreshing)
+        #expect(sticky.tabBar.convert(sticky.tabBar.bounds, to: viewport) == originalBar)
+        UIView.performWithoutAnimation {
+            refresh.endRefreshing()
+            scroll.contentOffset.y = restingOffset
+            scroll.layoutIfNeeded()
+        }
+        #expect(!refresh.isRefreshing)
+        #expect(sticky.tabBar.convert(sticky.tabBar.bounds, to: viewport) == originalBar)
+        #expect(scroll.contentInset.top == -restingOffset)
+    }
+
     @Test("Page replacement and clearing invalidate status bar ownership")
     func replacementInvalidatesStatusBar() throws {
         let a = NativeStatusPage(hidden: false), b = NativeStatusPage(hidden: true)

@@ -22,12 +22,12 @@ struct PagerStateHandoffTests {
         (sticky.pager as! PagerViewController).host.scrollView.contentOffset.x = 120
         try #require(sticky.pager.isTransitioning)
         let viewport = try #require((sticky.pager as? PagerViewController)?.view.superview)
-        let expectedBefore = distance < 0 ? 200 - distance : max(0, 200 - distance)
+        let expectedBefore = min(200, max(0, 200 - distance))
         #expect(sticky.tabBar.convert(sticky.tabBar.bounds, to: viewport).minY == expectedBefore)
         sticky.setHeaderHeight(350)
         sticky.view.layoutIfNeeded()
         #expect(sticky.pager.isTransitioning)
-        let expectedAfter = distance < 0 ? 350 - distance : max(0, 350 - distance / 200 * 350)
+        let expectedAfter = min(350, max(0, 350 - distance / 200 * 350))
         #expect(sticky.tabBar.convert(sticky.tabBar.bounds, to: viewport).minY == expectedAfter)
         #expect(sticky.tabBar.superview?.bounds.height == 394)
     }

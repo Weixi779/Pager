@@ -13,6 +13,31 @@ import UIKit
 @MainActor
 @Suite("Sticky pager")
 struct StickyPagerTests {
+    @Test("Pull-down opens space below stationary chrome", arguments: [CGFloat(0), 12])
+    func pullDownBelowChrome(baseTop: CGFloat) {
+        let scroll = list(height: 1200)
+        scroll.contentInset.top = baseTop
+        let overlay = UIView(frame: scroll.bounds), chrome = UIView()
+        overlay.addSubview(scroll)
+        let coordinator = StickyScrollCoordinator(chrome: chrome, overlay: overlay, headerHeight: 200, tabBarHeight: 44)
+        coordinator.attach(scroll, id: "a")
+        coordinator.activate("a")
+        defer { coordinator.detachAll() }
+        let restingOffset = scroll.contentOffset.y
+        for pull: CGFloat in [0, 20, 80, 160, 80, 0] {
+            scroll.contentOffset.y = restingOffset - pull
+            let frame = chrome.convert(chrome.bounds, to: overlay)
+            #expect(frame.minY == 0)
+            #expect(frame.maxY == 244)
+            #expect(coordinator.sharedCollapse == 0)
+            #expect(-scroll.contentOffset.y - frame.maxY == baseTop + pull)
+        }
+        scroll.contentOffset.y = restingOffset - 80
+        coordinator.updateGeometry(headerHeight: 300, tabBarHeight: 50)
+        #expect(chrome.convert(chrome.bounds, to: overlay).minY == 0)
+        #expect(-scroll.contentOffset.y - chrome.bounds.height == baseTop + 80)
+    }
+
     @Test("Header and list share one continuous vertical offset")
     func continuousGeometry() {
         let scroll = list(height: 1200)

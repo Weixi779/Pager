@@ -11,6 +11,9 @@
 | 原生区头与状态栏修复，Swift 6 / iOS 16.4、26.5 模拟器 | 两个系统分别 48 个测试通过，8 个 suite；Swift 警告视为错误 |
 | 非抛出 API 与控制协议收口，Swift 6 / iOS 16.4 模拟器 | 51 个测试通过，9 个 suite；普通拒绝无副作用、初始配置惰性、公开能力和弱 delegate 已验证 |
 | 非抛出 API 与控制协议收口后的示例 UI 测试，Swift 6 / iOS 26.5 | UIKit / SwiftUI 共 4 条路径通过，0 failures |
+| 分类栏下方刷新布局，Swift 6 / iOS 16.4 | 完整 53 个测试通过，9 个 suite；新增下拉空间及原生刷新位置的参数化回归测试 |
+| 分类栏下方刷新布局，Swift 6 / iOS 26.5 | Sticky、原生集成及状态交接共 18 个测试通过，3 个 suite |
+| 分类栏下方刷新布局后的示例 UI 测试，Swift 6 / iOS 26.5 | UIKit / SwiftUI 原有 4 条手势路径通过，0 failures |
 | 外部模块 API 编译检查，Swift 6 / iOS 16.0 target | 查询、delegate、单参数选择和独立 Pager 更新可编译；组合 pager 和 delegate 参数直接调用 setPages 均被编译器拒绝 |
 | 首版示例 UIKit / SwiftUI UI 测试，Swift 5 / iOS 18.6 | 历史验证：4 条手势路径通过 |
 | 独立示例 UIKit / SwiftUI UI 测试，Swift 6 / iOS 26.5 | 生命周期、几何与接管修复、导航协议抽取，子页面重入与分类栏缩窄修复，以及原生区头与状态栏修复后，4 条路径通过，0 failures |
@@ -39,6 +42,8 @@ iOS 16.4 的 UIKit 会保留部分 autoreleased 临时引用。页面移除和�
 非抛出 API 改造将普通拒绝断言迁移为 Bool，保留旧状态与配置闭包不执行等检查；另加 3 个仅 import Pager 的公开 API 测试，验证拒绝页面替换不创建页面、不发事件，拒绝导航项更新保留内容与选择，以及控制协议的选择便利调用、状态查询和弱 delegate。初始化采用非 Optional 并信任调用方，因此历史上的初始化拒绝用例改为合法初始化的选择同步与工厂惰性检查。实现契约不再使用 precondition/assert，非法初始配置不属于可恢复更新的测试保证。
 
 本轮未处理 `PagerTabBar` 的 Dynamic Type 字体测量不一致问题；该已知问题不计入上述通过结果。
+
+分类栏下方刷新修复：先在旧实现上复现 header/bar 随下拉偏移，再验证它们在完全展开后保持原位，新增空间位于分类栏与列表内容之间。参数化测试覆盖额外顶部 inset、不同下拉距离、下拉中改变头部高度，以及 UIScrollView / UITableView / UICollectionView 的真实 UIRefreshControl 位置、刷新中切页和结束后的 inset 恢复。横向过渡中的头部高度测试同步采用新的顶部边界。刷新位置直接在原生视图集成测试中断言；XCUITest 会等待刷新动画结束，因此不依赖 UI 自动化在动画中途抓取控件。
 
 ## 手势路径
 
