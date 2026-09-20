@@ -1,6 +1,6 @@
 # Pager
 
-UIKit / iOS 15。沿用 Package 的 Swift 编译模式，无新增依赖。首版采用 UIScrollView，按 ID 懒创建后全部保留页面；不会因为普通切页回收页面或自动请求数据。
+UIKit / iOS 15。Swift 6 language mode，开启完整并发检查；UI 状态显式隔离到 MainActor，无新增依赖。首版采用 UIScrollView，按 ID 懒创建后全部保留页面；不会因为普通切页回收页面或自动请求数据。
 
 ## 入口与归属
 

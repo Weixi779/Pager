@@ -131,7 +131,8 @@ struct PagerViewControllerTests {
     func removalAndReordering() throws {
         let pager = try PagerViewController(pages: pages())
         layout(pager)
-        weak var first = pager.currentViewController
+        weak var first: UIViewController?
+        first = pager.currentViewController
         pager.selectPage("b", animated: false)
         let second = pager.currentViewController
         try pager.setPages([PagerPage(id: "b") { Issue.record("Retained factory must not rerun"); return UIViewController() }])

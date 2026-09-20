@@ -1,15 +1,17 @@
 # 验证记录
 
-日期：2026-09-20。环境：Xcode 26.5 / Swift 6.3.2 编译器；Package 沿用 Swift 5 language mode，最低 iOS 15。
+日期：2026-09-20。环境：Xcode 26.5 / Swift 6.3.2 编译器；Package、示例 App 和 UI 测试均使用 Swift 6 language mode，最低 iOS 15。
 
 | 验证 | 结果 |
 | --- | --- |
-| 独立 Pager Package 单元测试，iOS 18.6 模拟器 | 最终 25 个测试通过，3 个 suite；包括一个含 3 个参数的测试 |
-| 独立示例 UIKit / SwiftUI UI 测试，iOS 18.6 | 4 条手势路径通过 |
-| 独立示例 UIKit / SwiftUI UI 测试，iOS 26.5 | 最终回归 4 条路径通过，0 failures |
-| 核心 Sources，Swift 5 / iOS 15 simulator target 类型检查 | 通过，0 diagnostics |
+| 独立 Pager Package 单元测试，Swift 6 / iOS 18.6 模拟器 | 25 个测试通过，3 个 suite；包括一个含 3 个参数的测试；Swift 警告视为错误 |
+| 首版示例 UIKit / SwiftUI UI 测试，Swift 5 / iOS 18.6 | 历史验证：4 条手势路径通过 |
+| 独立示例 UIKit / SwiftUI UI 测试，Swift 6 / iOS 26.5 | 本轮回归 4 条路径通过，0 failures |
+| 核心 Sources，Swift 6 / iOS 15 simulator target 类型检查 | warnings-as-errors，0 diagnostics |
 | SwiftFormat | 通过 |
 | SwiftLint 0.59.1 | 0 violations |
+
+Swift 6 模式自带完整并发检查；本次未新增跳过隔离检查的标注。编译日志中仅有 Xcode 的 AppIntents 元数据提取提示（本包不依赖 AppIntents），没有 Swift 源码诊断。
 
 ## 单元测试覆盖
 
@@ -30,7 +32,8 @@
 
 ```sh
 xcodebuild test -scheme Pager \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.6'
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro,OS=18.6' \
+  SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
 
 xcodebuild test \
   -project Examples/PagerDemo/PagerDemo.xcodeproj \
