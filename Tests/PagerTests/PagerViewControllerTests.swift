@@ -16,8 +16,8 @@ struct PagerViewControllerTests {
     @Test("Factories are lazy and retained pages keep their controller and view hierarchy")
     func retainsPages() throws {
         var creations: [String] = []
-        let pager = try PagerViewController(pages: ["a", "b", "c"].map { name in
-            PagerPage(id: PagerPageID(name)) { creations.append(name); return UIViewController() }
+        let pager = PagerViewController(pages: ["a", "b", "c"].map { name in
+            PagerPage(id: PagerPageId(name)) { creations.append(name); return UIViewController() }
         })
         #expect(creations.isEmpty)
         layout(pager)
@@ -34,35 +34,33 @@ struct PagerViewControllerTests {
     }
 
     @Test("Distant selection does not instantiate intermediate pages")
-    func distantSelection() throws {
+    func distantSelection() {
         var creations: [String] = []
-        let pager = try PagerViewController(pages: ["a", "b", "c"].map { name in
-            PagerPage(id: PagerPageID(name)) { creations.append(name); return UIViewController() }
+        let pager = PagerViewController(pages: ["a", "b", "c"].map { name in
+            PagerPage(id: PagerPageId(name)) { creations.append(name); return UIViewController() }
         })
         layout(pager)
         pager.selectPage("c")
         #expect(creations == ["a", "c"])
-        #expect(pager.selectedPageID == "c")
+        #expect(pager.selectedPageId == "c")
         #expect(!pager.isTransitioning)
     }
 
     @Test("Validation is atomic and unknown selections leave the current page unchanged")
-    func validation() throws {
-        let pager = try PagerViewController(pages: pages())
+    func validation() {
+        let pager = PagerViewController(pages: pages())
         layout(pager)
-        #expect(throws: PagerError.duplicatePageID("a")) {
-            try pager.setPages([PagerPage(id: "a") { UIViewController() }, PagerPage(id: "a") { UIViewController() }])
-        }
-        #expect(throws: PagerError.unknownPageID("missing")) { try pager.setPages(pages(), selectedPageID: "missing") }
-        #expect(pager.pageIDs == ["a", "b"])
+        #expect(!pager.setPages([PagerPage(id: "a") { UIViewController() }, PagerPage(id: "a") { UIViewController() }]))
+        #expect(!pager.setPages(pages(), selectedPageId: "missing"))
+        #expect(pager.pageIds == ["a", "b"])
         #expect(!pager.selectPage("missing"))
-        #expect(pager.selectedPageID == "a")
+        #expect(pager.selectedPageId == "a")
     }
 
     @Test("A completed switch forwards appearance exactly once to the two participating pages")
-    func completedAppearance() throws {
+    func completedAppearance() {
         let a = LifecyclePage(), b = LifecyclePage()
-        let pager = try PagerViewController(pages: [PagerPage(id: "a") { a }, PagerPage(id: "b") { b }])
+        let pager = PagerViewController(pages: [PagerPage(id: "a") { a }, PagerPage(id: "b") { b }])
         layout(pager)
         pager.beginAppearanceTransition(true, animated: false)
         pager.endAppearanceTransition()
@@ -76,10 +74,10 @@ struct PagerViewControllerTests {
     }
 
     @Test("Interactive cancellation restores the source and balances appearance")
-    func interactiveCancellation() throws {
+    func interactiveCancellation() {
         let a = LifecyclePage(), b = LifecyclePage()
         let recorder = EventRecorder()
-        let pager = try PagerViewController(pages: [PagerPage(id: "a") { a }, PagerPage(id: "b") { b }])
+        let pager = PagerViewController(pages: [PagerPage(id: "a") { a }, PagerPage(id: "b") { b }])
         pager.delegate = recorder
         layout(pager)
         pager.beginAppearanceTransition(true, animated: false)
@@ -87,12 +85,12 @@ struct PagerViewControllerTests {
         a.events.removeAll()
         pager.host.scrollView.contentOffset.x = 120
         #expect(pager.isTransitioning)
-        #expect(pager.selectedPageID == "a")
+        #expect(pager.selectedPageId == "a")
         #expect(b.view.accessibilityElementsHidden)
         pager.host.scrollView.contentOffset.x = 0
         pager.host.scrollViewDidEndDragging(pager.host.scrollView, willDecelerate: false)
         #expect(!pager.isTransitioning)
-        #expect(pager.selectedPageID == "a")
+        #expect(pager.selectedPageId == "a")
         #expect(a.events.last == "didAppear")
         #expect(b.events.last == "didDisappear")
         #expect(recorder.completed == [false])
@@ -100,55 +98,59 @@ struct PagerViewControllerTests {
     }
 
     @Test("Interactive completion commits only after scrolling settles")
-    func interactiveCompletion() throws {
-        let pager = try PagerViewController(pages: pages())
+    func interactiveCompletion() {
+        let pager = PagerViewController(pages: pages())
         let recorder = EventRecorder()
         pager.delegate = recorder
         layout(pager)
         pager.host.scrollView.contentOffset.x = 320
-        #expect(pager.selectedPageID == "a")
+        #expect(pager.selectedPageId == "a")
         pager.host.scrollViewDidEndDecelerating(pager.host.scrollView)
-        #expect(pager.selectedPageID == "b")
+        #expect(pager.selectedPageId == "b")
         #expect(recorder.completed == [true])
         #expect(recorder.selections == ["b"])
     }
 
     @Test("Resize cancels an unfinished transition and aligns the committed page")
-    func resizeDuringTransition() throws {
-        let pager = try PagerViewController(pages: pages())
+    func resizeDuringTransition() {
+        let pager = PagerViewController(pages: pages())
         layout(pager)
         pager.host.scrollView.contentOffset.x = 160
         pager.view.frame.size.width = 500
         pager.view.setNeedsLayout()
         pager.view.layoutIfNeeded()
         #expect(!pager.isTransitioning)
-        #expect(pager.selectedPageID == "a")
+        #expect(pager.selectedPageId == "a")
         #expect(pager.host.scrollView.contentOffset.x == 0)
         #expect(pager.children.allSatisfy { $0.view.bounds.width == 500 })
     }
 
     @Test("Removing pages tears down containment and releases retained instances")
-    func removalAndReordering() throws {
-        let pager = try PagerViewController(pages: pages())
-        layout(pager)
+    func removalAndReordering() {
+        let pager = PagerViewController(pages: pages())
         weak var first: UIViewController?
-        first = pager.currentViewController
-        pager.selectPage("b", animated: false)
-        let second = pager.currentViewController
-        try pager.setPages([PagerPage(id: "b") { Issue.record("Retained factory must not rerun"); return UIViewController() }])
+        // Drain UIKit's temporary references before checking ownership on iOS 16.
+        let second = autoreleasepool {
+            layout(pager)
+            first = pager.currentViewController
+            pager.selectPage("b", animated: false)
+            let second = pager.currentViewController
+            pager.setPages([PagerPage(id: "b") { Issue.record("Retained factory must not rerun"); return UIViewController() }])
+            return second
+        }
         #expect(first == nil)
         #expect(pager.currentViewController === second)
         #expect(pager.children.count == 1)
         #expect(pager.host.scrollView.contentOffset.x == 0)
-        try pager.setPages([])
+        pager.setPages([])
         #expect(pager.children.isEmpty)
-        #expect(pager.selectedPageID == nil)
+        #expect(pager.selectedPageId == nil)
         #expect(second?.parent == nil)
     }
 
     @Test("Reentrant delegate selection is applied after the current transition")
-    func reentrantSelection() async throws {
-        let pager = try PagerViewController(pages: pages())
+    func reentrantSelection() async {
+        let pager = PagerViewController(pages: pages())
         let recorder = EventRecorder()
         pager.delegate = recorder
         recorder.onSelection = { id in
@@ -159,15 +161,15 @@ struct PagerViewControllerTests {
         await withCheckedContinuation { continuation in
             DispatchQueue.main.async { continuation.resume() }
         }
-        #expect(pager.selectedPageID == "a")
+        #expect(pager.selectedPageId == "a")
         #expect(recorder.selections == ["b", "a"])
         recorder.onSelection = nil
     }
 
     @Test("A hidden container does not send child appearance events on selection")
-    func hiddenSelection() throws {
+    func hiddenSelection() {
         let a = LifecyclePage(), b = LifecyclePage()
-        let pager = try PagerViewController(pages: [PagerPage(id: "a") { a }, PagerPage(id: "b") { b }])
+        let pager = PagerViewController(pages: [PagerPage(id: "a") { a }, PagerPage(id: "b") { b }])
         layout(pager)
         pager.selectPage("b", animated: false)
         #expect(a.events.isEmpty)
@@ -175,16 +177,16 @@ struct PagerViewControllerTests {
     }
 
     @Test("Parent disappearance cancels a drag before forwarding disappearance")
-    func parentDisappearsDuringDrag() throws {
+    func parentDisappearsDuringDrag() {
         let a = LifecyclePage(), b = LifecyclePage()
-        let pager = try PagerViewController(pages: [PagerPage(id: "a") { a }, PagerPage(id: "b") { b }])
+        let pager = PagerViewController(pages: [PagerPage(id: "a") { a }, PagerPage(id: "b") { b }])
         layout(pager)
         pager.beginAppearanceTransition(true, animated: false)
         pager.endAppearanceTransition()
         pager.host.scrollView.contentOffset.x = 120
         pager.beginAppearanceTransition(false, animated: false)
         pager.endAppearanceTransition()
-        #expect(pager.selectedPageID == "a")
+        #expect(pager.selectedPageId == "a")
         #expect(!pager.isTransitioning)
         #expect(a.events.last == "didDisappear")
         #expect(b.events.last == "didDisappear")
@@ -195,12 +197,13 @@ struct PagerViewControllerTests {
     }
 
     @Test("Releasing a retaining pager releases all created controllers")
-    func releasesContainer() throws {
+    func releasesContainer() {
         weak var releasedPager: PagerViewController?
         weak var first: UIViewController?
         weak var second: UIViewController?
-        do {
-            let pager = try PagerViewController(pages: pages())
+        // A local scope alone does not drain UIKit's autoreleased references.
+        autoreleasepool {
+            let pager = PagerViewController(pages: pages())
             releasedPager = pager
             layout(pager)
             first = pager.currentViewController
@@ -213,8 +216,8 @@ struct PagerViewControllerTests {
     }
 
     @Test("An older queued request cannot override a newer explicit selection")
-    func newerSelectionWins() async throws {
-        let pager = try PagerViewController(pages: pages() + [PagerPage(id: "c") { UIViewController() }])
+    func newerSelectionWins() async {
+        let pager = PagerViewController(pages: pages() + [PagerPage(id: "c") { UIViewController() }])
         let recorder = EventRecorder()
         pager.delegate = recorder
         recorder.onSelection = { id in
@@ -224,7 +227,7 @@ struct PagerViewControllerTests {
         pager.selectPage("b", animated: false)
         pager.selectPage("c", animated: false)
         await withCheckedContinuation { continuation in DispatchQueue.main.async { continuation.resume() } }
-        #expect(pager.selectedPageID == "c")
+        #expect(pager.selectedPageId == "c")
         #expect(recorder.selections == ["b", "c"])
         recorder.onSelection = nil
     }
@@ -264,9 +267,9 @@ private final class LifecyclePage: UIViewController {
 @MainActor
 private final class EventRecorder: PagerViewControllerDelegate {
     var completed: [Bool] = []
-    var selections: [PagerPageID?] = []
-    var onSelection: ((PagerPageID?) -> Void)?
-    func pager(_: PagerViewController, didReceive event: PagerEvent) {
+    var selections: [PagerPageId?] = []
+    var onSelection: ((PagerPageId?) -> Void)?
+    func pager(_: any PagerControlling, didReceive event: PagerEvent) {
         switch event {
         case let .didFinishTransition(_, completed): self.completed.append(completed)
         case let .didSelect(id): selections.append(id); onSelection?(id)

@@ -130,9 +130,9 @@ struct StickyPagerTests {
     }
 
     @Test("Composite connects the active list and tab selection")
-    func composite() throws {
+    func composite() {
         let a = ListPage(), b = ListPage()
-        let sticky = try StickyPagerViewController(
+        let sticky = StickyPagerViewController(
             pages: [PagerPage(id: "a") { a }, PagerPage(id: "b") { b }],
             items: [.init(id: "a", title: "精选"), .init(id: "b", title: "发现")],
             headerView: UIView(), headerHeight: 200,
@@ -142,11 +142,12 @@ struct StickyPagerTests {
         sticky.view.frame = CGRect(x: 0, y: 0, width: 320, height: 640)
         sticky.view.layoutIfNeeded()
         sticky.pager.selectPage("b", animated: false)
-        #expect(sticky.tabBar.selectedPageID == "b")
+        #expect(sticky.tabBar.selectedPageId == "b")
         #expect(b.scrollView.contentInset.top == 244)
         #expect(a.scrollView.delegate == nil)
-        try sticky.setPages([], items: [])
-        #expect(sticky.pager.children.isEmpty)
+        sticky.setPages([], items: [])
+        #expect(a.parent == nil)
+        #expect(b.parent == nil)
         #expect(b.scrollView.contentInset == .zero)
     }
 

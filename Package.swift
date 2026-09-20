@@ -4,7 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "Pager",
-    platforms: [.iOS(.v15)],
+    platforms: [.iOS(.v16)],
     products: [.library(name: "Pager", targets: ["Pager"])],
     targets: [
         .target(name: "Pager"),

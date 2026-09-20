@@ -1,6 +1,6 @@
 # PagerDemo
 
-独立 UIKit 验证 App，只依赖相对路径 `../..` 的 Pager。最低 iOS 15，使用文件系统同步 group，不依赖任何宿主工程。
+独立 UIKit 验证 App，只依赖相对路径 `../..` 的 Pager。最低 iOS 16，使用文件系统同步 group，不依赖任何宿主工程。
 
 打开 `PagerDemo.xcodeproj`，选择 **PagerDemo** scheme 和可用 iOS Simulator。测试也使用这个 scheme。
 

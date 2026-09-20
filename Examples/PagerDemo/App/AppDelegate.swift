@@ -30,7 +30,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 }
 
 final class DemoViewController: UIViewController {
-    private var sticky: StickyPagerViewController!
+    private var sticky: StickyPagerViewController<PagerTabBar>!
     private var tallHeader = false
     private var configuredInitialState = false
 
@@ -58,16 +58,14 @@ final class DemoViewController: UIViewController {
             resize.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 16),
         ])
         let descriptors: [(String, String, Int)] = [("long", "精选", 100), ("short", "发现", 2), ("empty", "分类", 0)]
-        do {
-            sticky = try StickyPagerViewController(
-                pages: descriptors.map { id, _, count in
-                    PagerPage(id: PagerPageID(id)) { DemoListViewController(id: id, rowCount: count) }
-                },
-                items: descriptors.map { .init(id: PagerPageID($0.0), title: $0.1) },
-                headerView: header, headerHeight: 200,
-                scrollViewProvider: { _, controller in (controller as! DemoListViewController).tableView }
-            )
-        } catch { preconditionFailure("Invalid demo pages: \(error)") }
+        sticky = StickyPagerViewController(
+            pages: descriptors.map { id, _, count in
+                PagerPage(id: PagerPageId(id)) { DemoListViewController(id: id, rowCount: count) }
+            },
+            items: descriptors.map { .init(id: PagerPageId($0.0), title: $0.1) },
+            headerView: header, headerHeight: 200,
+            scrollViewProvider: { _, controller in (controller as! DemoListViewController).tableView }
+        )
         sticky.tabBar.backgroundColor = .systemBackground
         var configuration = PagerTabBar.Configuration()
         configuration.selectedFont = .boldSystemFont(ofSize: 22)
@@ -101,12 +99,12 @@ final class DemoViewController: UIViewController {
 }
 
 final class DemoListViewController: UITableViewController {
-    private let pageID: String
+    private let pageId: String
     private let rowCount: Int
     private var refreshCount = 0
 
     init(id: String, rowCount: Int) {
-        pageID = id
+        pageId = id
         self.rowCount = rowCount
         super.init(style: .plain)
     }
@@ -118,11 +116,11 @@ final class DemoListViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        tableView.accessibilityIdentifier = "list-" + pageID
+        tableView.accessibilityIdentifier = "list-" + pageId
         tableView.rowHeight = 64
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "row")
         let refresh = UIRefreshControl()
-        refresh.accessibilityIdentifier = "refresh-" + pageID
+        refresh.accessibilityIdentifier = "refresh-" + pageId
         refresh.addTarget(self, action: #selector(refreshCurrentPage), for: .valueChanged)
         refreshControl = refresh
         updateRefreshStatus()
@@ -135,10 +133,10 @@ final class DemoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "row", for: indexPath)
         var content = cell.defaultContentConfiguration()
-        content.text = "\(pageID) · 第 \(indexPath.row + 1) 行"
+        content.text = "\(pageId) · 第 \(indexPath.row + 1) 行"
         content.secondaryText = "刷新 \(refreshCount) 次"
         cell.contentConfiguration = content
-        cell.accessibilityIdentifier = "\(pageID)-row-\(indexPath.row)"
+        cell.accessibilityIdentifier = "\(pageId)-row-\(indexPath.row)"
         return cell
     }
 

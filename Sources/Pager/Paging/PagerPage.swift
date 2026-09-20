@@ -9,7 +9,7 @@
 import UIKit
 
 /// Stable identity, independent of a page's position in the current array.
-public struct PagerPageID: Hashable, Sendable, ExpressibleByStringLiteral {
+public struct PagerPageId: Hashable, Sendable, ExpressibleByStringLiteral {
     public let rawValue: String
 
     public init(_ rawValue: String) {
@@ -21,32 +21,25 @@ public struct PagerPageID: Hashable, Sendable, ExpressibleByStringLiteral {
     }
 }
 
-/// The factory runs on first display. A retained ID keeps its existing controller
-/// when descriptors are replaced; use a new ID to replace the controller itself.
+/// The factory runs on first display. A retained Id keeps its existing controller
+/// when descriptors are replaced; use a new Id to replace the controller itself.
 @MainActor
 public struct PagerPage {
-    public let id: PagerPageID
+    public let id: PagerPageId
     let makeViewController: @MainActor () -> UIViewController
 
-    public init(id: PagerPageID, makeViewController: @escaping @MainActor () -> UIViewController) {
+    public init(id: PagerPageId, makeViewController: @escaping @MainActor () -> UIViewController) {
         self.id = id
         self.makeViewController = makeViewController
     }
 }
 
-public enum PagerError: Error, Equatable {
-    case duplicatePageID(PagerPageID)
-    case unknownPageID(PagerPageID)
-    case transitionInProgress
-    case tabItemsDoNotMatchPages
-}
-
 public struct PagerTransition: Equatable {
-    public let source: PagerPageID
-    public let destination: PagerPageID
+    public let source: PagerPageId
+    public let destination: PagerPageId
     public let progress: CGFloat
 
-    public init(source: PagerPageID, destination: PagerPageID, progress: CGFloat) {
+    public init(source: PagerPageId, destination: PagerPageId, progress: CGFloat) {
         self.source = source
         self.destination = destination
         self.progress = progress.isFinite ? min(max(progress, 0), 1) : 0
@@ -57,10 +50,10 @@ public enum PagerEvent {
     case willTransition(PagerTransition)
     case didUpdateTransition(PagerTransition)
     case didFinishTransition(PagerTransition, completed: Bool)
-    case didSelect(PagerPageID?)
+    case didSelect(PagerPageId?)
 }
 
 @MainActor
 public protocol PagerViewControllerDelegate: AnyObject {
-    func pager(_ pager: PagerViewController, didReceive event: PagerEvent)
+    func pager(_ pager: any PagerControlling, didReceive event: PagerEvent)
 }

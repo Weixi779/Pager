@@ -10,13 +10,13 @@ import UIKit
 
 /// A standalone page navigation bar. Taps emit intent; the owner commits selection.
 @MainActor
-public final class PagerTabBar: UIView {
+public final class PagerTabBar: UIView, PagerNavigationPresenting {
     public struct Item: Equatable {
-        public let id: PagerPageID
+        public let id: PagerPageId
         public var title: String
         public var accessibilityLabel: String?
 
-        public init(id: PagerPageID, title: String, accessibilityLabel: String? = nil) {
+        public init(id: PagerPageId, title: String, accessibilityLabel: String? = nil) {
             self.id = id
             self.title = title
             self.accessibilityLabel = accessibilityLabel
@@ -44,13 +44,18 @@ public final class PagerTabBar: UIView {
         didSet { updateButtons(); setNeedsLayout() }
     }
 
-    public var onSelect: ((PagerPageID) -> Void)?
+    public var onSelect: ((PagerPageId) -> Void)?
     public private(set) var items: [Item] = []
-    public private(set) var selectedPageID: PagerPageID?
+    public private(set) var selectedPageId: PagerPageId?
+    public var pageIds: [PagerPageId] {
+        items.map(\.id)
+    }
+
     private let scrollView = UIScrollView()
     private let indicator = UIView()
     private var buttons: [UIButton] = []
     private var displayedTransition: PagerTransition?
+    private var needsSelectionReveal = false
 
     override public init(frame: CGRect) {
         super.init(frame: frame)
@@ -68,15 +73,20 @@ public final class PagerTabBar: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    public func setItems(_ items: [Item], selectedPageID: PagerPageID? = nil) throws {
-        var ids = Set<PagerPageID>()
-        for item in items where !ids.insert(item.id).inserted {
-            throw PagerError.duplicatePageID(item.id)
-        }
-        if let selectedPageID, !ids.contains(selectedPageID) { throw PagerError.unknownPageID(selectedPageID) }
+    /// Returns false without changing items or selection when validation fails.
+    @discardableResult
+    public func setItems(_ items: [Item], selectedPageId: PagerPageId? = nil) -> Bool {
+        guard PagerDiagnostics.validate(items.map(\.id), selection: selectedPageId) else { return false }
+        applyValidatedItems(items, selectedPageId: selectedPageId)
+        return true
+    }
+
+    /// The caller must validate unique identities and membership of the selection.
+    func applyValidatedItems(_ items: [Item], selectedPageId: PagerPageId?) {
         buttons.forEach { $0.removeFromSuperview() }
         self.items = items
-        self.selectedPageID = selectedPageID
+        self.selectedPageId = selectedPageId
+        needsSelectionReveal = true
         displayedTransition = nil
         buttons = items.enumerated().map { index, item in
             let button = UIButton(type: .custom)
@@ -92,16 +102,14 @@ public final class PagerTabBar: UIView {
         setNeedsLayout()
     }
 
-    public func setSelection(_ id: PagerPageID?) {
+    public func setSelection(_ id: PagerPageId?) {
         guard id == nil || items.contains(where: { $0.id == id }) else { return }
-        selectedPageID = id
+        selectedPageId = id
+        needsSelectionReveal = true
         displayedTransition = nil
         updateButtons()
         setNeedsLayout()
         layoutIfNeeded()
-        if let index = items.firstIndex(where: { $0.id == id }) {
-            scrollView.scrollRectToVisible(buttons[index].frame.insetBy(dx: -configuration.itemSpacing, dy: 0), animated: false)
-        }
     }
 
     public func displayTransition(_ transition: PagerTransition) {
@@ -112,17 +120,9 @@ public final class PagerTabBar: UIView {
         layoutIfNeeded()
     }
 
-    /// Convenience for consumers forwarding their Pager delegate events.
-    public func receive(_ event: PagerEvent) {
-        switch event {
-        case let .willTransition(value), let .didUpdateTransition(value): displayTransition(value)
-        case let .didFinishTransition(value, completed): setSelection(completed ? value.destination : value.source)
-        case let .didSelect(id): setSelection(id)
-        }
-    }
-
     override public func layoutSubviews() {
         super.layoutSubviews()
+        if scrollView.bounds.size != bounds.size { needsSelectionReveal = true }
         scrollView.frame = bounds
         let inset = max(0, configuration.horizontalInset)
         let spacing = max(0, configuration.itemSpacing)
@@ -141,9 +141,15 @@ public final class PagerTabBar: UIView {
             x += width + spacing
         }
         scrollView.contentSize = CGSize(width: max(bounds.width, x - (items.isEmpty ? 0 : spacing) + inset), height: bounds.height)
-        let fromID = displayedTransition?.source ?? selectedPageID
-        let toID = displayedTransition?.destination ?? selectedPageID
-        guard let from = indicatorFrame(for: fromID), let to = indicatorFrame(for: toID) else {
+        if needsSelectionReveal, bounds.width > 0, bounds.height > 0 {
+            needsSelectionReveal = false
+            if let index = items.firstIndex(where: { $0.id == selectedPageId }) {
+                scrollView.scrollRectToVisible(buttons[index].frame.insetBy(dx: -spacing, dy: 0), animated: false)
+            }
+        }
+        let fromId = displayedTransition?.source ?? selectedPageId
+        let toId = displayedTransition?.destination ?? selectedPageId
+        guard let from = indicatorFrame(for: fromId), let to = indicatorFrame(for: toId) else {
             indicator.isHidden = true
             return
         }
@@ -156,7 +162,7 @@ public final class PagerTabBar: UIView {
         scrollView.bringSubviewToFront(indicator)
     }
 
-    private func indicatorFrame(for id: PagerPageID?) -> CGRect? {
+    private func indicatorFrame(for id: PagerPageId?) -> CGRect? {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return nil }
         let button = buttons[index]
         let width = max(0, configuration.indicatorWidth ?? (items[index].title as NSString).size(withAttributes: [.font: configuration.selectedFont]).width)
@@ -167,7 +173,7 @@ public final class PagerTabBar: UIView {
 
     private func updateButtons() {
         for (index, button) in buttons.enumerated() {
-            let selected = items[index].id == selectedPageID
+            let selected = items[index].id == selectedPageId
             button.titleLabel?.font = selected ? configuration.selectedFont : configuration.font
             button.setTitleColor(selected ? configuration.selectedTextColor : configuration.textColor, for: .normal)
             button.accessibilityTraits = selected ? [.button, .selected] : [.button]

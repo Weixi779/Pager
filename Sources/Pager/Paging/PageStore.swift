@@ -11,17 +11,13 @@ import UIKit
 @MainActor
 final class PageStore {
     private(set) var pages: [PagerPage] = []
-    private(set) var controllers: [PagerPageID: UIViewController] = [:]
+    private(set) var controllers: [PagerPageId: UIViewController] = [:]
 
-    static func validate(_ pages: [PagerPage], selection: PagerPageID?) throws {
-        var ids = Set<PagerPageID>()
-        for page in pages where !ids.insert(page.id).inserted {
-            throw PagerError.duplicatePageID(page.id)
-        }
-        if let selection, !ids.contains(selection) { throw PagerError.unknownPageID(selection) }
+    static func validate(_ pages: [PagerPage], selection: PagerPageId?) -> Bool {
+        PagerDiagnostics.validate(pages.map(\.id), selection: selection)
     }
 
-    func replace(with pages: [PagerPage]) -> [(PagerPageID, UIViewController)] {
+    func replace(with pages: [PagerPage]) -> [(PagerPageId, UIViewController)] {
         let ids = Set(pages.map(\.id))
         let removed = controllers.filter { !ids.contains($0.key) }
         for id in removed.keys {
@@ -35,8 +31,6 @@ final class PageStore {
         let page = pages[index]
         if let controller = controllers[page.id] { return (controller, false) }
         let controller = page.makeViewController()
-        precondition(controller.parent == nil, "A page factory must return an unparented controller.")
-        precondition(!controllers.values.contains { $0 === controller }, "Each page ID needs its own controller.")
         controllers[page.id] = controller
         return (controller, true)
     }

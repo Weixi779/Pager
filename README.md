@@ -4,16 +4,18 @@ A UIKit page container with lazy retained pages, a configurable tab bar, and a s
 
 **Development preview.** API and interaction validation are in progress; no stable release has been published.
 
-- iOS 15+, UIKit, Swift 6, Swift Package Manager; no third-party dependencies.
-- `PagerViewController`: horizontal swiping, stable page IDs, lazy creation and retained controllers.
-- `PagerTabBar`: standalone titles and an interpolating indicator, driven by page selection events.
+- iOS 16+, UIKit, Swift 6, Swift Package Manager; no third-party dependencies.
+- `PagerViewController`: horizontal swiping, stable page Ids, lazy creation and retained controllers.
+- `PagerControlling`: selection, queries and events without page replacement on the composite’s public pager.
+- `PagerNavigationPresenting`: a UIView-constrained contract for externally supplied page navigation.
+- `PagerTabBar`: the default implementation with titles and an interpolating indicator.
 - `StickyPagerViewController`: shared header, pinned tabs and native vertical list scrolling.
 - The feature owns content, styling, data loading and refresh requests.
 
 ```swift
 import Pager
 
-let pager = try PagerViewController(pages: [
+let pager = PagerViewController(pages: [
     PagerPage(id: "featured") { FeaturedViewController() },
     PagerPage(id: "discover") { DiscoverViewController() },
 ])

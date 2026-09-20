@@ -11,15 +11,15 @@ import UIKit
 /// A lazy, retaining page container. Offscreen pages remain parented and mounted.
 /// Page order is the supplied order; the host decides whether to reverse it for RTL.
 @MainActor
-public final class PagerViewController: UIViewController {
-    public weak var delegate: PagerViewControllerDelegate?
-    public private(set) var selectedPageID: PagerPageID?
-    public var pageIDs: [PagerPageID] {
+public final class PagerViewController: UIViewController, PagerControlling {
+    public weak var delegate: (any PagerViewControllerDelegate)?
+    public private(set) var selectedPageId: PagerPageId?
+    public var pageIds: [PagerPageId] {
         store.pages.map(\.id)
     }
 
     public var currentViewController: UIViewController? {
-        selectedPageID.flatMap { store.controllers[$0] }
+        selectedPageId.flatMap { store.controllers[$0] }
     }
 
     public var isTransitioning: Bool {
@@ -35,19 +35,32 @@ public final class PagerViewController: UIViewController {
     private var transition: PagerTransition?
     private var transitionAnimated = false
     private var appearanceIsOpen = false
+    private var isForwardingAppearance = false
+    private var pendingParentAppearances: [ParentAppearance] = []
     private var visibility = Visibility.hidden
     private var isMutating = false
-    private var pendingSelection: (id: PagerPageID, animated: Bool, revision: UInt)?
+    private var pendingSelection: (id: PagerPageId, animated: Bool, revision: UInt)?
     private var selectionRevision: UInt = 0
     private var lastSize = CGSize.zero
     private var programmaticDestination: Int?
     var onEvent: ((PagerEvent) -> Void)?
-    var onPreparePage: ((PagerPageID, UIViewController) -> Void)?
-    var onRemovePage: ((PagerPageID) -> Void)?
+    var onPreparePage: ((PagerPageId, UIViewController) -> Void)?
+    var onRemovePage: ((PagerPageId) -> Void)?
+
+    /// Already-created pages, in descriptor order; reading this never runs factories.
+    var preparedPages: [(id: PagerPageId, controller: UIViewController)] {
+        store.pages.compactMap { page in
+            store.controllers[page.id].map { (page.id, $0) }
+        }
+    }
 
     private enum Visibility { case hidden, appearing, visible, disappearing }
+    private enum ParentAppearance {
+        case willAppear(Bool), didAppear, willDisappear(Bool), didDisappear
+    }
+
     private var selectedIndex: Int {
-        pageIDs.firstIndex { $0 == selectedPageID } ?? 0
+        pageIds.firstIndex { $0 == selectedPageId } ?? 0
     }
 
     override public var shouldAutomaticallyForwardAppearanceMethods: Bool {
@@ -62,9 +75,10 @@ public final class PagerViewController: UIViewController {
         currentViewController
     }
 
-    public init(pages: [PagerPage], selectedPageID: PagerPageID? = nil) throws {
-        try PageStore.validate(pages, selection: selectedPageID)
-        self.selectedPageID = selectedPageID ?? pages.first?.id
+    /// Initial identities must be unique and contain the requested selection.
+    /// Initial configuration is a caller contract; runtime replacements are validated.
+    public init(pages: [PagerPage] = [], selectedPageId: PagerPageId? = nil) {
+        self.selectedPageId = selectedPageId ?? pages.first?.id
         super.init(nibName: nil, bundle: nil)
         _ = store.replace(with: pages)
     }
@@ -107,41 +121,76 @@ public final class PagerViewController: UIViewController {
 
     override public func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        visibility = .appearing
-        currentViewController?.beginAppearanceTransition(true, animated: animated)
+        receiveParentAppearance(.willAppear(animated))
     }
 
     override public func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        currentViewController?.endAppearanceTransition()
-        visibility = .visible
-        drainPendingSelection()
+        receiveParentAppearance(.didAppear)
     }
 
     override public func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        performMutation {
-            host.stop()
-            programmaticDestination = nil
-            finishTransition(completed: false)
-            host.layoutPages(selectedIndex: selectedIndex)
-            visibility = .disappearing
-            currentViewController?.beginAppearanceTransition(false, animated: animated)
-        }
+        receiveParentAppearance(.willDisappear(animated))
     }
 
     override public func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
-        currentViewController?.endAppearanceTransition()
-        visibility = .hidden
-        drainPendingSelection()
+        receiveParentAppearance(.didDisappear)
     }
 
-    /// Returns false for an unknown ID. Reentrant selections are coalesced to the
-    /// most recent request and applied after the current event or parent appearance.
+    private func receiveParentAppearance(_ appearance: ParentAppearance) {
+        pendingParentAppearances.append(appearance)
+        drainParentAppearances()
+    }
+
+    private func drainParentAppearances() {
+        guard !isForwardingAppearance else { return }
+        withMutationScope {
+            while !pendingParentAppearances.isEmpty {
+                let appearance = pendingParentAppearances.removeFirst()
+                isForwardingAppearance = true
+                switch appearance {
+                case let .willAppear(animated):
+                    visibility = .appearing
+                    currentViewController?.beginAppearanceTransition(true, animated: animated)
+                case .didAppear:
+                    currentViewController?.endAppearanceTransition()
+                    visibility = .visible
+                case let .willDisappear(animated):
+                    visibility = .disappearing
+                    host.stop()
+                    programmaticDestination = nil
+                    finishTransition(completed: false)
+                    host.layoutPages(selectedIndex: selectedIndex)
+                    currentViewController?.beginAppearanceTransition(false, animated: animated)
+                case .didDisappear:
+                    currentViewController?.endAppearanceTransition()
+                    visibility = .hidden
+                }
+                isForwardingAppearance = false
+            }
+        }
+    }
+
+    /// Finish the current group of child callbacks before forwarding a parent
+    /// lifecycle change. UIKit may synchronously reenter from any child callback.
+    private func withAppearanceForwarding(_ body: () -> Void) {
+        let wasForwarding = isForwardingAppearance
+        isForwardingAppearance = true
+        body()
+        isForwardingAppearance = wasForwarding
+        if !wasForwarding { drainParentAppearances() }
+    }
+
+    /// True means accepted, not completed. Returns false for an unknown Id.
+    /// Reentrant selections are coalesced to the most recent request and applied
+    /// after the current event or parent appearance.
     @discardableResult
-    public func selectPage(_ id: PagerPageID, animated: Bool = true) -> Bool {
-        guard pageIDs.contains(id) else { return false }
+    public func selectPage(_ id: PagerPageId, animated: Bool = true) -> Bool {
+        guard pageIds.contains(id) else {
+            return PagerDiagnostics.reject("Cannot select a page that is not in the container.")
+        }
         selectionRevision &+= 1
         guard !isMutating, visibility != .appearing, visibility != .disappearing else {
             pendingSelection = (id, animated, selectionRevision)
@@ -154,10 +203,12 @@ public final class PagerViewController: UIViewController {
             programmaticDestination = nil
             finishTransition(completed: false)
             host.layoutPages(selectedIndex: selectedIndex)
-            guard id != selectedPageID, let index = pageIDs.firstIndex(of: id) else { return }
+            guard id != selectedPageId, let index = pageIds.firstIndex(of: id) else { return }
             // Nonadjacent jumps do not instantiate intermediate pages.
             let shouldAnimate = animated && visibility == .visible && host.pageWidth > 0 && abs(index - selectedIndex) == 1
             beginTransition(to: index, animated: shouldAnimate)
+            // A synchronous lifecycle callback may have cancelled this transition.
+            guard transition?.destination == id else { return }
             programmaticDestination = index
             host.move(to: index, animated: shouldAnimate)
             if !shouldAnimate {
@@ -168,44 +219,59 @@ public final class PagerViewController: UIViewController {
         return true
     }
 
-    /// Atomic validation; retained IDs keep their controller and reading state.
+    /// Atomic validation; retained Ids keep their controller and reading state.
     /// Call after a transition/parent appearance finishes, not from an event callback.
-    public func setPages(_ pages: [PagerPage], selectedPageID: PagerPageID? = nil) throws {
-        try PageStore.validate(pages, selection: selectedPageID)
+    @discardableResult
+    public func setPages(_ pages: [PagerPage], selectedPageId: PagerPageId? = nil) -> Bool {
+        setPages(pages, selectedPageId: selectedPageId, synchronize: {})
+    }
+
+    /// Commit composite state before publishing events, inside the same mutation
+    /// boundary so callback-driven replacements and selections keep their rules.
+    @discardableResult
+    func setPages(_ pages: [PagerPage], selectedPageId: PagerPageId?, synchronize: () -> Void) -> Bool {
+        guard PageStore.validate(pages, selection: selectedPageId) else { return false }
         guard !isMutating, !isTransitioning, !host.scrollView.isDragging,
               !host.scrollView.isDecelerating, visibility != .appearing, visibility != .disappearing else {
-            throw PagerError.transitionInProgress
+            return PagerDiagnostics.reject("Cannot replace pages during a transition, appearance callback or another update.")
         }
         selectionRevision &+= 1
         pendingSelection = nil
         performMutation {
-            let oldID = self.selectedPageID
-            let newID = selectedPageID ?? pages.first(where: { $0.id == oldID })?.id ?? pages.first?.id
-            let oldController = currentViewController
-            if oldID != newID, visibility == .visible {
-                oldController?.beginAppearanceTransition(false, animated: false)
-            }
-            let removed = store.replace(with: pages)
-            self.selectedPageID = newID
-            if isViewLoaded, let newID, let index = pageIDs.firstIndex(of: newID) {
-                preparePage(at: index)
-                if oldID != newID, visibility == .visible {
-                    currentViewController?.beginAppearanceTransition(true, animated: false)
+            withAppearanceForwarding {
+                let oldId = self.selectedPageId
+                let newId = selectedPageId ?? pages.first(where: { $0.id == oldId })?.id ?? pages.first?.id
+                let oldController = currentViewController
+                if oldId != newId, visibility == .visible {
+                    oldController?.beginAppearanceTransition(false, animated: false)
+                }
+                let removed = store.replace(with: pages)
+                self.selectedPageId = newId
+                if isViewLoaded, let newId, let index = pageIds.firstIndex(of: newId) {
+                    preparePage(at: index)
+                    if oldId != newId, visibility == .visible {
+                        currentViewController?.beginAppearanceTransition(true, animated: false)
+                    }
+                }
+                if oldId != newId, visibility == .visible {
+                    oldController?.endAppearanceTransition()
+                    currentViewController?.endAppearanceTransition()
+                }
+                for (id, controller) in removed {
+                    onRemovePage?(id)
+                    controller.willMove(toParent: nil)
+                    controller.viewIfLoaded?.removeFromSuperview()
+                    controller.removeFromParent()
+                }
+                if isViewLoaded { configureHost() }
+                synchronize()
+                if oldId != newId {
+                    setNeedsStatusBarAppearanceUpdate()
+                    emit(.didSelect(newId))
                 }
             }
-            if oldID != newID, visibility == .visible {
-                oldController?.endAppearanceTransition()
-                currentViewController?.endAppearanceTransition()
-            }
-            for (id, controller) in removed {
-                onRemovePage?(id)
-                controller.willMove(toParent: nil)
-                controller.viewIfLoaded?.removeFromSuperview()
-                controller.removeFromParent()
-            }
-            if isViewLoaded { configureHost() }
-            if oldID != newID { emit(.didSelect(newID)) }
         }
+        return true
     }
 
     private func preparePage(at index: Int) {
@@ -213,10 +279,10 @@ public final class PagerViewController: UIViewController {
         let (controller, created) = store.controller(at: index)
         if created {
             addChild(controller)
-            controller.view.accessibilityElementsHidden = pageIDs[index] != selectedPageID
+            controller.view.accessibilityElementsHidden = pageIds[index] != selectedPageId
             host.mount(controller.view, at: index)
             controller.didMove(toParent: self)
-            onPreparePage?(pageIDs[index], controller)
+            onPreparePage?(pageIds[index], controller)
         } else {
             host.mount(controller.view, at: index)
         }
@@ -224,38 +290,40 @@ public final class PagerViewController: UIViewController {
 
     private func configureHost() {
         var views: [Int: UIView] = [:]
-        for (index, id) in pageIDs.enumerated() {
+        for (index, id) in pageIds.enumerated() {
             if let controller = store.controllers[id] { views[index] = controller.view }
         }
-        host.configure(pageCount: pageIDs.count, views: views, selectedIndex: selectedIndex)
+        host.configure(pageCount: pageIds.count, views: views, selectedIndex: selectedIndex)
         updateAccessibility()
     }
 
     private func beginTransition(to index: Int, animated: Bool) {
-        guard let source = selectedPageID, pageIDs.indices.contains(index), pageIDs[index] != source else { return }
+        guard let source = selectedPageId, pageIds.indices.contains(index), pageIds[index] != source else { return }
         preparePage(at: index)
         transitionAnimated = animated
-        let value = PagerTransition(source: source, destination: pageIDs[index], progress: 0)
+        let value = PagerTransition(source: source, destination: pageIds[index], progress: 0)
         transition = value
-        if visibility == .visible {
-            store.controllers[source]?.beginAppearanceTransition(false, animated: animated)
-            store.controllers[value.destination]?.beginAppearanceTransition(true, animated: animated)
-            appearanceIsOpen = true
+        withAppearanceForwarding {
+            if visibility == .visible {
+                appearanceIsOpen = true
+                store.controllers[source]?.beginAppearanceTransition(false, animated: animated)
+                store.controllers[value.destination]?.beginAppearanceTransition(true, animated: animated)
+            }
+            emit(.willTransition(value))
         }
-        emit(.willTransition(value))
     }
 
     private func didScroll(to position: CGFloat) {
-        guard !isMutating, pageIDs.count > 1, position.isFinite else { return }
+        guard !isMutating, pageIds.count > 1, position.isFinite else { return }
         performMutation {
             let origin = selectedIndex
-            let bounded = min(max(position, 0), CGFloat(pageIDs.count - 1))
+            let bounded = min(max(position, 0), CGFloat(pageIds.count - 1))
             let index = programmaticDestination ?? (bounded > CGFloat(origin) ? Int(ceil(bounded)) : Int(floor(bounded)))
             if index == origin {
                 finishTransition(completed: false)
                 return
             }
-            if transition?.destination != pageIDs[index] {
+            if transition?.destination != pageIds[index] {
                 finishTransition(completed: false)
                 beginTransition(to: index, animated: true)
             }
@@ -272,14 +340,14 @@ public final class PagerViewController: UIViewController {
     }
 
     private func settle() {
-        guard !isMutating, !pageIDs.isEmpty else { return }
+        guard !isMutating, !pageIds.isEmpty else { return }
         performMutation {
-            let index = min(max(Int(host.position.rounded()), 0), pageIDs.count - 1)
+            let index = min(max(Int(host.position.rounded()), 0), pageIds.count - 1)
             programmaticDestination = nil
             if index == selectedIndex {
                 finishTransition(completed: false)
             } else {
-                if transition?.destination != pageIDs[index] {
+                if transition?.destination != pageIds[index] {
                     finishTransition(completed: false)
                     beginTransition(to: index, animated: true)
                 }
@@ -293,30 +361,33 @@ public final class PagerViewController: UIViewController {
         guard let transition else { return }
         let source = store.controllers[transition.source]
         let destination = store.controllers[transition.destination]
-        if appearanceIsOpen {
-            if !completed {
-                // UIKit supports reversing an unfinished appearance transition.
-                source?.beginAppearanceTransition(true, animated: transitionAnimated)
-                destination?.beginAppearanceTransition(false, animated: transitionAnimated)
-            }
-            source?.endAppearanceTransition()
-            destination?.endAppearanceTransition()
-            appearanceIsOpen = false
-        }
+        let shouldFinishAppearance = appearanceIsOpen
+        appearanceIsOpen = false
         self.transition = nil
-        if completed { selectedPageID = transition.destination }
-        updateAccessibility()
-        let final = PagerTransition(source: transition.source, destination: transition.destination, progress: completed ? 1 : 0)
-        emit(.didFinishTransition(final, completed: completed))
-        if completed {
-            setNeedsStatusBarAppearanceUpdate()
-            emit(.didSelect(selectedPageID))
+        if completed { selectedPageId = transition.destination }
+        withAppearanceForwarding {
+            if shouldFinishAppearance {
+                if !completed {
+                    // UIKit supports reversing an unfinished appearance transition.
+                    source?.beginAppearanceTransition(true, animated: transitionAnimated)
+                    destination?.beginAppearanceTransition(false, animated: transitionAnimated)
+                }
+                source?.endAppearanceTransition()
+                destination?.endAppearanceTransition()
+            }
+            updateAccessibility()
+            let final = PagerTransition(source: transition.source, destination: transition.destination, progress: completed ? 1 : 0)
+            emit(.didFinishTransition(final, completed: completed))
+            if completed {
+                setNeedsStatusBarAppearanceUpdate()
+                emit(.didSelect(selectedPageId))
+            }
         }
     }
 
     private func updateAccessibility() {
         for (id, controller) in store.controllers {
-            controller.viewIfLoaded?.accessibilityElementsHidden = id != selectedPageID
+            controller.viewIfLoaded?.accessibilityElementsHidden = id != selectedPageId
         }
     }
 
@@ -327,10 +398,17 @@ public final class PagerViewController: UIViewController {
 
     private func performMutation(_ body: () -> Void) {
         guard !isMutating else { return }
+        withMutationScope(body)
+    }
+
+    private func withMutationScope(_ body: () -> Void) {
+        let wasMutating = isMutating
         isMutating = true
+        defer {
+            isMutating = wasMutating
+            if !wasMutating { drainPendingSelection() }
+        }
         body()
-        isMutating = false
-        drainPendingSelection()
     }
 
     private func drainPendingSelection() {
