@@ -1,0 +1,5 @@
+--indent 4
+--swiftversion 5.10
+--exclude .build,.swiftpm
+--self remove
+--disable wrapArguments,wrapAttributes,wrapMultilineStatementBraces

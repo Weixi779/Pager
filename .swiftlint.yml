@@ -1,0 +1,17 @@
+excluded:
+  - .build
+  - .swiftpm
+disabled_rules:
+  - identifier_name
+  - type_name
+  - line_length
+  - file_length
+  - type_body_length
+  - function_body_length
+  - function_parameter_count
+  - trailing_comma
+  - force_cast
+  - large_tuple
+  - cyclomatic_complexity
+  - opening_brace
+  - nesting
