@@ -75,6 +75,12 @@ final class StickyScrollCoordinator {
         }
     }
 
+    var onHeaderStateChange: ((StickyPagerHeaderState) -> Void)?
+    var headerState: StickyPagerHeaderState {
+        StickyPagerHeaderState(collapseDistance: sharedCollapse, collapseRange: geometry.headerHeight)
+    }
+
+    private var lastPublishedHeaderState: StickyPagerHeaderState?
     let chrome: UIView
     private weak var overlay: UIView?
     private var attachments: [PagerPageId: Attachment] = [:]
@@ -153,7 +159,10 @@ final class StickyScrollCoordinator {
             attachment.scrollView.scrollsToTop = key == id
         }
         guard let id, let attachment = attachments[id] else {
+            overlayOriginY = nil
+            sharedCollapse = 0
             chrome.removeFromSuperview()
+            publishHeaderState()
             return
         }
         align(attachment)
@@ -171,8 +180,8 @@ final class StickyScrollCoordinator {
         overlay.addSubview(chrome)
         // The first scroll callback arrives after horizontal movement has begun.
         // Preserve vertical position only; copying x would freeze an initial sideways drift.
-        layoutChrome()
         if let target = attachments[id] { align(target) }
+        layoutChrome()
     }
 
     func updateGeometry(headerHeight: CGFloat, tabBarHeight: CGFloat) {
@@ -220,8 +229,14 @@ final class StickyScrollCoordinator {
 
     func detach(_ id: PagerPageId) {
         guard let attachment = attachments.removeValue(forKey: id) else { return }
-        if activeId == id { chrome.removeFromSuperview(); activeId = nil }
+        let wasActive = activeId == id
+        if wasActive { chrome.removeFromSuperview(); activeId = nil }
         attachment.restore()
+        if wasActive {
+            overlayOriginY = nil
+            sharedCollapse = 0
+            publishHeaderState()
+        }
     }
 
     func detachAll() {
@@ -231,8 +246,9 @@ final class StickyScrollCoordinator {
     }
 
     private func align(_ attachment: Attachment) {
-        // Do not disturb a refresh already in progress when returning to its tab.
-        guard attachment.scrollView.refreshControl?.isRefreshing != true else { return }
+        // Preserve displayed pull-down, including custom refresh and its finishing
+        // animation, without depending on a loading state.
+        guard attachment.scrollView.contentOffset.y >= -attachment.restingTop else { return }
         attachment.isUpdating = true
         attachment.scrollView.contentOffset.y = geometry.activationOffset(
             currentOffset: attachment.scrollView.contentOffset.y,
@@ -280,7 +296,26 @@ final class StickyScrollCoordinator {
         layoutChrome()
     }
 
+    @discardableResult
+    func scrollToTop(of id: PagerPageId, animated: Bool) -> Bool {
+        guard !isHorizontalTransition, let attachment = attachments[id] else { return false }
+        let scrollView = attachment.scrollView
+        // Derive external space before expanding our shrinking inset contribution.
+        let externalTop = max(0, scrollView.contentInset.top - attachment.baseInset.top - attachment.topContribution)
+        let target = CGPoint(x: scrollView.contentOffset.x, y: -attachment.restingTop - externalTop)
+        scrollView.setContentOffset(target, animated: animated)
+        return true
+    }
+
+    private func publishHeaderState() {
+        let state = headerState
+        guard state != lastPublishedHeaderState else { return }
+        lastPublishedHeaderState = state
+        onHeaderStateChange?(state)
+    }
+
     private func layoutChrome() {
+        defer { publishHeaderState() }
         if let origin = overlayOriginY {
             guard let overlay else { return }
             chrome.frame = CGRect(
@@ -304,6 +339,7 @@ final class StickyScrollCoordinator {
             width: scrollView.bounds.width,
             height: geometry.topContribution
         )
+        sharedCollapse = collapse
         scrollView.bringSubviewToFront(chrome)
     }
 }

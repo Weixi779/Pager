@@ -17,6 +17,15 @@ public final class StickyPagerViewController<Navigation: PagerNavigationPresenti
         pagerController
     }
 
+    /// Current displayed header geometry, also available before loading the view.
+    public var headerState: StickyPagerHeaderState {
+        coordinator?.headerState ?? StickyPagerHeaderState(collapseDistance: 0, collapseRange: headerHeight)
+    }
+
+    /// Delivered synchronously after geometry updates, only when the state changes.
+    /// Read `headerState` when installing a handler after the view has loaded.
+    public var onHeaderStateChange: ((StickyPagerHeaderState) -> Void)?
+
     public let tabBar: Navigation
     public let headerView: UIView
     public private(set) var headerHeight: CGFloat
@@ -68,6 +77,9 @@ public final class StickyPagerViewController<Navigation: PagerNavigationPresenti
             headerHeight: headerHeight,
             tabBarHeight: tabBarHeight
         )
+        coordinator?.onHeaderStateChange = { [weak self] state in
+            self?.onHeaderStateChange?(state)
+        }
         pagerController.onPreparePage = { [weak self] id, controller in
             self?.attachPage(id: id, controller: controller)
         }
@@ -122,6 +134,15 @@ public final class StickyPagerViewController<Navigation: PagerNavigationPresenti
         guard pagerController.pageIds.contains(id) else { return }
         baseInsets[id] = inset
         coordinator?.setBaseInset(inset, for: id)
+    }
+
+    /// Return an attached page to its fully expanded top without selecting or
+    /// loading it, starting refresh, or removing space owned by a refresh control.
+    /// Returns false during horizontal transitions or for an unattached page.
+    @discardableResult
+    public func scrollToTop(of id: PagerPageId, animated: Bool = true) -> Bool {
+        guard !pagerController.isTransitioning else { return false }
+        return coordinator?.scrollToTop(of: id, animated: animated) ?? false
     }
 
     /// Replace pages while keeping the existing navigation contents and order.

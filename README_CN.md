@@ -101,6 +101,26 @@ sticky.tabBar.configuration = configuration
 
 需要其他导航样式时，让自己的 UIView 实现 `PagerNavigationPresenting`，通过 `tabBar:` 初始化入口注入。默认的 `PagerTabBar` 并非强制依赖。协议及更新约定见[接入文档](Docs/Pager.md)。
 
+### 头部状态与回到展开顶部
+
+`sticky.headerState` 提供当前的 `collapseDistance`、`collapseRange` 和 `progress`。
+通过 `onHeaderStateChange` 驱动透明度、图标等业务展示；头部的位置仍由容器负责。
+回调在几何更新后同步发出，仅通知变化的状态。横向切页期间保持公共头部的展示状态，
+完成或取消后再同步。零高度头部、超过完全展开位置的下拉都返回零进度。
+加载后才安装回调时，先读取当前状态完成初始展示。
+
+```swift
+sticky.onHeaderStateChange = { state in
+    // 使用 state.collapseDistance 或 state.progress 更新业务展示。
+}
+let accepted = sticky.scrollToTop(of: "feed", animated: true)
+```
+
+回顶以公共头部完全展开的原点为目标，不使用收起过程中变化的 `adjustedContentInset.top`。
+它不会切页、创建页面或发起刷新，也不会清除刷新控件拥有的临时空间。
+页面尚未接入或正在横向过渡时返回 false；true 表示接受请求，不代表动画已结束。
+切页对齐会保留目标页已经显示的顶部下拉区域，不依赖网络请求状态或某种刷新控件。
+
 ### 分类栏下方刷新
 
 在每个页面的主列表上安装 `UIRefreshControl`，处理 `.valueChanged`，请求完成后调用 `endRefreshing()`。

@@ -101,6 +101,28 @@ sticky.tabBar.configuration = configuration
 
 For a different navigation design, implement `PagerNavigationPresenting` on your UIView and supply it through the `tabBar:` initializer. The default `PagerTabBar` is optional. See the [integration guide](Docs/Pager.md) for the protocol and update contracts.
 
+### Header state and returning to the expanded top
+
+Read `sticky.headerState` for `collapseDistance`, `collapseRange`, and `progress`.
+Use `onHeaderStateChange` to drive opacity or icon transitions; the container still owns header positioning.
+The callback runs synchronously after geometry updates and only when the state changes.
+Horizontal paging keeps the displayed header state fixed until completion or cancellation.
+A zero-height header and pull-down beyond the expanded top both report zero progress.
+Read the current state when installing a handler after the view has loaded.
+
+```swift
+sticky.onHeaderStateChange = { state in
+    // Update feature-owned visuals using state.collapseDistance or state.progress.
+}
+let accepted = sticky.scrollToTop(of: "feed", animated: true)
+```
+
+Returning to the top uses the fully expanded origin, not the changing `adjustedContentInset.top`.
+It does not select or load a page, start a refresh, or remove temporary space owned by a refresh control.
+It returns false for unattached pages or during horizontal transitions; true means the request was accepted,
+not that the animation finished. Page alignment preserves an existing pull-down region without consulting
+network request state or depending on a particular refresh control.
+
 ### Refresh below the tab bar
 
 Install a `UIRefreshControl` on each page's main list, handle `.valueChanged`, and call `endRefreshing()` when the request finishes.

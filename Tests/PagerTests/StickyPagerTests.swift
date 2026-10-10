@@ -255,6 +255,122 @@ struct StickyPagerTests {
         #expect(scroll.contentOffset.y == 344)
     }
 
+    @Test("Header state follows displayed geometry and stays frozen across paging", arguments: [true, false])
+    func headerStateDuringPaging(completed: Bool) {
+        let a = list(height: 1600), b = list(height: 1600)
+        let overlay = UIView(frame: a.bounds), chrome = UIView()
+        overlay.addSubview(a)
+        overlay.addSubview(b)
+        let coordinator = StickyScrollCoordinator(chrome: chrome, overlay: overlay, headerHeight: 77, tabBarHeight: 43)
+        var states: [StickyPagerHeaderState] = []
+        coordinator.onHeaderStateChange = { state in
+            states.append(state)
+            #expect(chrome.convert(chrome.bounds, to: overlay).minY == -state.collapseDistance)
+        }
+        coordinator.attach(a, id: "a")
+        coordinator.attach(b, id: "b")
+        coordinator.activate("a")
+        defer { coordinator.detachAll() }
+        #expect(states.last?.progress == 0)
+        a.contentOffset.y = -90
+        #expect(states.last?.collapseDistance == 30)
+        let count = states.count
+        coordinator.beginTransition(to: "b")
+        b.contentOffset.y = 200
+        #expect(states.count == count)
+        #expect(coordinator.headerState.collapseDistance == 30)
+        coordinator.activate(completed ? "b" : "a")
+        #expect(coordinator.headerState.collapseDistance == 30)
+        let active = completed ? b : a
+        active.contentOffset.y = -43
+        #expect(coordinator.headerState.progress == 1)
+        active.contentOffset.y = 300
+        #expect(states.last?.collapseDistance == 77)
+        let pinnedCount = states.count
+        active.contentOffset.y = 400
+        #expect(states.count == pinnedCount)
+        coordinator.updateGeometry(headerHeight: 0, tabBarHeight: 43)
+        #expect(coordinator.headerState.progress == 0)
+        #expect(coordinator.headerState.collapseRange == 0)
+        coordinator.onHeaderStateChange = nil
+    }
+
+    @Test("Custom refresh pull-down survives switching back without a UIRefreshControl")
+    func customRefreshPosition() {
+        let a = list(height: 1600), b = list(height: 1600)
+        let coordinator = StickyScrollCoordinator(chrome: UIView(), overlay: UIView(), headerHeight: 77, tabBarHeight: 43)
+        coordinator.attach(a, id: "a")
+        coordinator.attach(b, id: "b")
+        coordinator.activate("a")
+        defer { coordinator.detachAll() }
+        a.contentInset.top += 70
+        a.contentOffset.y = -190
+        coordinator.activate("b")
+        b.contentOffset.y = 300
+        coordinator.beginTransition(to: "a")
+        #expect(a.contentOffset.y == -190)
+        coordinator.activate("a")
+        #expect(a.contentOffset.y == -190)
+        #expect(a.contentInset.top == 190)
+        #expect(coordinator.headerState.collapseDistance == 0)
+        // The refresh owner closes only its own space.
+        a.contentInset.top -= 70
+        a.contentOffset.y = -120
+        #expect(coordinator.headerState.progress == 0)
+    }
+
+    @Test("Return to top uses expanded origin and preserves external inset", arguments: [CGFloat(0), 70])
+    func expandedScrollToTop(externalTop: CGFloat) {
+        let a = list(height: 1600)
+        a.contentInset = UIEdgeInsets(top: 12, left: 0, bottom: 8, right: 0)
+        let overlay = UIView(), coordinator = StickyScrollCoordinator(chrome: UIView(), overlay: overlay, headerHeight: 77, tabBarHeight: 43)
+        coordinator.attach(a, id: "a")
+        coordinator.activate("a")
+        defer { coordinator.detachAll() }
+        a.contentOffset.y = 500
+        a.contentInset.top += externalTop
+        #expect(coordinator.scrollToTop(of: "a", animated: false))
+        #expect(a.contentOffset.y == -132 - externalTop)
+        #expect(a.contentInset.top == 132 + externalTop)
+        #expect(a.contentInset.bottom == 8)
+        #expect(coordinator.headerState.progress == 0)
+        #expect(!coordinator.scrollToTop(of: "unknown", animated: false))
+        coordinator.beginTransition(to: "a")
+        #expect(!coordinator.scrollToTop(of: "a", animated: false))
+    }
+
+    @Test("Public header state and return to top do not create an unloaded page")
+    func publicHeaderState() {
+        let a = ListPage()
+        var createdB = false
+        let sticky = StickyPagerViewController(
+            pages: [PagerPage(id: "a") { a }, PagerPage(id: "b") { createdB = true; return ListPage() }],
+            items: [.init(id: "a", title: "A"), .init(id: "b", title: "B")],
+            headerView: UIView(),
+            headerHeight: 77,
+            tabBarHeight: 43,
+            scrollViewProvider: { _, controller in (controller as! ListPage).scrollView }
+        )
+        #expect(sticky.headerState.collapseRange == 77)
+        #expect(!sticky.scrollToTop(of: "a", animated: false))
+        #expect(!sticky.isViewLoaded)
+        var states: [StickyPagerHeaderState] = []
+        sticky.onHeaderStateChange = { states.append($0) }
+        sticky.loadViewIfNeeded()
+        sticky.view.frame = CGRect(x: 0, y: 0, width: 320, height: 640)
+        sticky.view.layoutIfNeeded()
+        a.scrollView.contentOffset.y = 100
+        #expect(sticky.headerState.progress == 1)
+        #expect(sticky.scrollToTop(of: "a", animated: false))
+        #expect(states.last?.progress == 0)
+        #expect(!sticky.scrollToTop(of: "b", animated: false))
+        #expect(!createdB)
+        sticky.setHeaderHeight(100)
+        #expect(states.last?.collapseRange == 100)
+        sticky.setPages([], items: [])
+        #expect(sticky.headerState.progress == 0)
+    }
+
     private func list(height: CGFloat) -> UIScrollView {
         let view = UIScrollView(frame: CGRect(
             x: 0,
