@@ -111,6 +111,37 @@ struct PagerViewControllerTests {
         #expect(recorder.selections == ["b"])
     }
 
+    @Test("Resumed drags keep appearance open until completion or cancellation", arguments: [false, true])
+    func resumedDragAppearance(completed: Bool) {
+        let a = LifecyclePage(), b = LifecyclePage()
+        let recorder = EventRecorder()
+        let pager = PagerViewController(pages: [.init(id: "a") { a }, .init(id: "b") { b }])
+        pager.delegate = recorder
+        layout(pager)
+        pager.beginAppearanceTransition(true, animated: false)
+        pager.endAppearanceTransition()
+        a.events.removeAll()
+
+        for offset: CGFloat in [80, 160, 240] {
+            pager.host.scrollView.contentOffset.x = offset
+            pager.host.scrollViewDidEndDragging(pager.host.scrollView, willDecelerate: true)
+            pager.host.scrollViewWillBeginDragging(pager.host.scrollView)
+            #expect(a.events == ["willDisappear"])
+            #expect(b.events == ["willAppear"])
+            #expect(recorder.completed.isEmpty)
+            #expect(recorder.selections.isEmpty)
+        }
+
+        pager.host.scrollView.contentOffset.x = completed ? 320 : 0
+        pager.host.scrollViewDidEndDecelerating(pager.host.scrollView)
+        #expect(a.events == (completed ? ["willDisappear", "didDisappear"] : ["willDisappear", "willAppear", "didAppear"]))
+        #expect(b.events == (completed ? ["willAppear", "didAppear"] : ["willAppear", "willDisappear", "didDisappear"]))
+        #expect(recorder.completed == [completed])
+        #expect(recorder.selections == (completed ? ["b"] : []))
+        #expect(pager.selectedPageId == (completed ? "b" : "a"))
+        #expect(!pager.isTransitioning)
+    }
+
     @Test("Resize cancels an unfinished transition and aligns the committed page")
     func resizeDuringTransition() {
         let pager = PagerViewController(pages: pages())

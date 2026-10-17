@@ -156,3 +156,23 @@ sticky.setPages(newPages, navigationPageIds: newCategories.map(\.id)) { navigati
 本轮参考了 JXSegmentedView、JXPagingSmoothView、GKPageSmoothView 和 Parchment 的职责划分与滚动思路；当前实现独立编写，没有引入这些库或复制其源码。开源采用仓库已有的 Apache-2.0 许可证。
 
 SwiftUI 宿主兼容性由示例内的 `PagerDemoHost` 与 UI 测试验证，核心库没有承诺 SwiftUI List 内部滚动视图适配。
+
+
+## Fully expanded scroll origin
+
+`expandedTopOffset(of:)` returns an attached page's fully expanded content offset,
+excluding space owned by refresh controls. It does not load pages and returns nil
+for unattached pages or during horizontal transitions. Collapse does not change
+this origin; header geometry and base inset changes do. A host can provide this
+query to a refresh control without making Pager depend on that control.
+
+## Selection commitment and interrupted swipes
+
+`PagerViewControllerDelegate.pager(_:didCommit:)` reports successful selection after
+the source disappears and before the destination appears. Cancellation does not
+commit, and reentrant selection waits until the current transition completes.
+The default implementation is empty for existing delegates.
+
+A new drag during deceleration keeps the current appearance transition open.
+Navigation progress follows the visible neighboring pages even when one continuous
+swipe crosses multiple pages; committed selection changes only when it settles.

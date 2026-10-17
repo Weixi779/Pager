@@ -98,8 +98,9 @@ public final class PagerViewController: UIViewController, PagerControlling {
         host.onBeginDragging = { [weak self] in
             guard let self else { return }
             performMutation {
+                // A new drag takes over at the current offset, including during
+                // deceleration. Keep its appearance and navigation progress open.
                 self.programmaticDestination = nil
-                self.finishTransition(completed: false)
             }
         }
         host.onSettle = { [weak self] in self?.settle() }
@@ -393,14 +394,15 @@ public final class PagerViewController: UIViewController, PagerControlling {
                     destination?.beginAppearanceTransition(false, animated: transitionAnimated)
                 }
                 source?.endAppearanceTransition()
-                destination?.endAppearanceTransition()
             }
-            updateAccessibility()
             let final = PagerTransition(
                 source: transition.source,
                 destination: transition.destination,
                 progress: completed ? 1 : 0
             )
+            if completed { delegate?.pager(self, didCommit: final) }
+            if shouldFinishAppearance { destination?.endAppearanceTransition() }
+            updateAccessibility()
             emit(.didFinishTransition(final, completed: completed))
             if completed {
                 setNeedsStatusBarAppearanceUpdate()

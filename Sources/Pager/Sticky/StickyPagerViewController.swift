@@ -145,6 +145,13 @@ public final class StickyPagerViewController<Navigation: PagerNavigationPresenti
         return coordinator?.scrollToTop(of: id, animated: animated) ?? false
     }
 
+    /// Fully expanded content offset, excluding space owned by refresh controls.
+    /// Does not load a page. Returns nil while paging or for an unattached page.
+    public func expandedTopOffset(of id: PagerPageId) -> CGFloat? {
+        guard !pagerController.isTransitioning else { return nil }
+        return coordinator?.expandedTopOffset(of: id)
+    }
+
     /// Replace pages while keeping the existing navigation contents and order.
     @discardableResult
     public func setPages(_ pages: [PagerPage], selectedPageId: PagerPageId? = nil) -> Bool {

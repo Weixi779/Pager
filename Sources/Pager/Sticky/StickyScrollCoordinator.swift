@@ -296,6 +296,10 @@ final class StickyScrollCoordinator {
         layoutChrome()
     }
 
+    func expandedTopOffset(of id: PagerPageId) -> CGFloat? {
+        attachments[id].map { -$0.restingTop }
+    }
+
     @discardableResult
     func scrollToTop(of id: PagerPageId, animated: Bool) -> Bool {
         guard !isHorizontalTransition, let attachment = attachments[id] else { return false }

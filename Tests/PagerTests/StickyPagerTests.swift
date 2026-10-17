@@ -371,6 +371,26 @@ struct StickyPagerTests {
         #expect(sticky.headerState.progress == 0)
     }
 
+    @Test("Expanded origin is independent of collapse and refresh space")
+    func expandedOrigin() {
+        let scroll = list(height: 1600)
+        scroll.contentInset.top = 12
+        let coordinator = StickyScrollCoordinator(chrome: UIView(), overlay: UIView(), headerHeight: 77, tabBarHeight: 43)
+        #expect(coordinator.expandedTopOffset(of: "a") == nil)
+        coordinator.attach(scroll, id: "a")
+        coordinator.activate("a")
+        #expect(coordinator.expandedTopOffset(of: "a") == -132)
+        scroll.contentOffset.y = 300
+        #expect(scroll.contentInset.top == 55)
+        #expect(coordinator.expandedTopOffset(of: "a") == -132)
+        scroll.contentInset.top += 70
+        #expect(coordinator.expandedTopOffset(of: "a") == -132)
+        coordinator.updateGeometry(headerHeight: 100, tabBarHeight: 43)
+        #expect(coordinator.expandedTopOffset(of: "a") == -155)
+        coordinator.detachAll()
+        #expect(coordinator.expandedTopOffset(of: "a") == nil)
+    }
+
     private func list(height: CGFloat) -> UIScrollView {
         let view = UIScrollView(frame: CGRect(
             x: 0,

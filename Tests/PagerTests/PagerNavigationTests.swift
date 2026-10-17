@@ -13,6 +13,85 @@ import UIKit
 @MainActor
 @Suite("Injected page navigation")
 struct PagerNavigationTests {
+    @Test("Repeated drags during deceleration preserve navigation progress", arguments: [false, true])
+    func resumedDragging(reverse: Bool) throws {
+        let navigation = NavigationView()
+        navigation.pageIds = ["a", "b", "c"]
+        let sticky = makeSticky(navigation)
+        layout(sticky)
+        let pager = try #require(sticky.pager as? PagerViewController)
+        let source: PagerPageId = reverse ? "c" : "a"
+        pager.selectPage(source, animated: false)
+        let origin: CGFloat = reverse ? 2 : 0
+        let direction: CGFloat = reverse ? -1 : 1
+
+        for progress: CGFloat in [0.25, 0.5, 0.75] {
+            pager.host.scrollView.contentOffset.x = (origin + direction * progress) * 320
+            pager.host.scrollViewDidEndDragging(pager.host.scrollView, willDecelerate: true)
+            let expected = PagerTransition(source: source, destination: "b", progress: progress)
+            #expect(navigation.transition == expected)
+            let selectionUpdates = navigation.selectionUpdates
+
+            pager.host.scrollViewWillBeginDragging(pager.host.scrollView)
+
+            #expect(navigation.transition == expected)
+            #expect(navigation.selectionUpdates == selectionUpdates)
+            #expect(pager.isTransitioning)
+            #expect(pager.selectedPageId == source)
+        }
+        pager.host.scrollView.contentOffset.x = 320
+        pager.host.scrollViewDidEndDecelerating(pager.host.scrollView)
+        #expect(pager.selectedPageId == "b")
+        #expect(navigation.selection == "b")
+        #expect(navigation.transition == nil)
+    }
+
+    @Test("Fast swipes across three pages highlight the visible neighbors", arguments: [false, true], [false, true])
+    func fastSwipeAcrossPages(reverse: Bool, returnsToSource: Bool) throws {
+        let navigation = NavigationView()
+        navigation.pageIds = ["a", "b", "c"]
+        let sticky = makeSticky(navigation)
+        layout(sticky)
+        let pager = try #require(sticky.pager as? PagerViewController)
+        let source: PagerPageId = reverse ? "c" : "a"
+        let destination: PagerPageId = reverse ? "a" : "c"
+        pager.selectPage(source, animated: false)
+        let delegate = NavigationDelegate()
+        pager.delegate = delegate
+        var selections: [PagerPageId?] = []
+        delegate.onSelect = { selections.append($0) }
+        let origin: CGFloat = reverse ? 2 : 0
+        let direction: CGFloat = reverse ? -1 : 1
+
+        pager.host.scrollView.contentOffset.x = (origin + direction * 0.75) * 320
+        pager.host.scrollViewDidEndDragging(pager.host.scrollView, willDecelerate: true)
+        pager.host.scrollViewWillBeginDragging(pager.host.scrollView)
+        for distance: CGFloat in [1, 1.25, 1.75, 1.25] {
+            pager.host.scrollView.contentOffset.x = (origin + direction * distance) * 320
+            if distance > 1 {
+                #expect(navigation.transition == PagerTransition(
+                    source: "b",
+                    destination: destination,
+                    progress: distance - 1
+                ))
+            }
+            #expect(pager.selectedPageId == source)
+            #expect(selections.isEmpty)
+        }
+
+        if returnsToSource {
+            pager.host.scrollView.contentOffset.x = (origin + direction * 0.75) * 320
+            #expect(navigation.transition == PagerTransition(source: source, destination: "b", progress: 0.75))
+        }
+        let finalPosition = returnsToSource ? origin : origin + direction * 2
+        pager.host.scrollView.contentOffset.x = finalPosition * 320
+        pager.host.scrollViewDidEndDecelerating(pager.host.scrollView)
+        #expect(pager.selectedPageId == (returnsToSource ? source : destination))
+        #expect(navigation.selection == pager.selectedPageId)
+        #expect(navigation.transition == nil)
+        #expect(selections == (returnsToSource ? [] : [destination]))
+    }
+
     @Test("Custom navigation is mounted and receives selection intent, progress and cancellation")
     func injectedNavigation() {
         let navigation = NavigationView()
@@ -169,7 +248,7 @@ struct PagerNavigationTests {
 
     private func makeSticky(_ navigation: NavigationView) -> StickyPagerViewController<NavigationView> {
         StickyPagerViewController(
-            pages: pages(["a", "b"]),
+            pages: pages(navigation.pageIds),
             tabBar: navigation,
             headerView: UIView(),
             headerHeight: 200,
@@ -200,8 +279,10 @@ private final class NavigationView: UIView, PagerNavigationPresenting {
     var onSelect: ((PagerPageId) -> Void)?
     private(set) var selection: PagerPageId?
     private(set) var transition: PagerTransition?
+    private(set) var selectionUpdates = 0
 
     func setSelection(_ id: PagerPageId?) {
+        selectionUpdates += 1
         selection = id
         transition = nil
     }

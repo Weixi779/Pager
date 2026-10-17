@@ -59,5 +59,12 @@ public enum PagerEvent {
 
 @MainActor
 public protocol PagerViewControllerDelegate: AnyObject {
+    /// A successful selection is committed, after the source disappears and before
+    /// the destination appears. Cancelled transitions never invoke this callback.
+    func pager(_ pager: any PagerControlling, didCommit transition: PagerTransition)
     func pager(_ pager: any PagerControlling, didReceive event: PagerEvent)
+}
+
+public extension PagerViewControllerDelegate {
+    func pager(_: any PagerControlling, didCommit _: PagerTransition) {}
 }
