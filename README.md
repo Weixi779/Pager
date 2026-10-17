@@ -37,7 +37,7 @@ The package exports one library, `Pager`:
 Requires Swift 6 / Xcode 16 or later and iOS 16 or later. Add the package in Xcode, or declare it in `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/Weixi779/Pager.git", from: "0.1.0")
+.package(url: "https://github.com/Weixi779/Pager.git", from: "0.3.0")
 ```
 
 Add the product to your target:
@@ -146,7 +146,7 @@ open Examples/PagerDemo/PagerDemo.xcodeproj
 
 Use **PagerDemo** for UIKit or **PagerDemoSwiftUI** to host the same component through `UIViewControllerRepresentable`. The demo includes long, short, and empty lists, header resizing, page switching, and native refresh.
 
-Validated with Xcode 26.5 / Swift 6.3.2 in Swift 6 language mode: 53 package tests on iOS 16.4, 18 focused sticky/native integration tests on iOS 26.5, and four UIKit/SwiftUI gesture tests on iOS 26.5. Formatting and strict lint checks also pass. See the [validation record](Docs/Validation.md) for commands, scope, and remaining checks.
+Version 0.3.0: 67 package tests, 8 cross-package refresh integration tests, and 4 demo UI tests passed with Xcode 27.1 on iOS 27.0. SwiftLint reports no violations. See the [validation record](Docs/Validation.md) for historical environments, commands, and known limitations.
 
 ## Roadmap
 

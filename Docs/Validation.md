@@ -74,3 +74,7 @@ swiftlint lint --strict --no-cache --config .swiftlint.yml
 ```
 
 测试通过不等于稳定版本已发布。最低 iOS 16.0 已做编译可用性检查，单元测试运行于 iOS 16.4 runtime，UI 测试运行于 iOS 26.5 runtime；本轮未在 iOS 16.0 runtime 上执行。真机性能、VoiceOver 完整交互和极端内存压力仍需后续验证。示例截图来自实际 UI 测试，不是设计稿。
+
+## 0.3.0 发布验证（2026-10-17）
+
+Xcode 27.1 / iOS 27.0：67 个 Package 测试通过，另在 Refresher 仓库的临时组合测试包中通过 8 个跨库测试。现有 UIKit / SwiftUI 示例的 4 个 UI 测试全部通过。SwiftLint 无告警。本版本未重新验证 iOS 16 runtime 或真机；以上历史记录保留各自的验证环境，不代表本版本全部复测。

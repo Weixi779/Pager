@@ -37,7 +37,7 @@ Package 导出一个 library：`Pager`。
 要求 Swift 6 / Xcode 16 或更新版本，最低 iOS 16。在 Xcode 中添加 Package，或在 `Package.swift` 中声明：
 
 ```swift
-.package(url: "https://github.com/Weixi779/Pager.git", from: "0.1.0")
+.package(url: "https://github.com/Weixi779/Pager.git", from: "0.3.0")
 ```
 
 将 product 加入目标 target：
@@ -144,7 +144,7 @@ open Examples/PagerDemo/PagerDemo.xcodeproj
 
 **PagerDemo** 是 UIKit 示例，**PagerDemoSwiftUI** 通过 `UIViewControllerRepresentable` 承载同一个组件。示例包含长列表、短列表、空列表、头部高度变化、切页与原生刷新。
 
-验证环境为 Xcode 26.5 / Swift 6.3.2，使用 Swift 6 language mode：iOS 16.4 上 53 个 Package 测试通过，iOS 26.5 上 18 个吸顶与原生集成相关测试通过，另有 4 条 UIKit / SwiftUI 手势测试通过。格式化及严格 lint 检查均通过。复现命令、覆盖范围及待验证事项见[验证记录](Docs/Validation.md)。
+0.3.0 验证：Xcode 27.1 / iOS 27.0 上 67 个 Package 测试、8 个跨库刷新集成测试及 4 个示例 UI 测试通过，SwiftLint 无告警。历史环境、复现命令及已知限制见[验证记录](Docs/Validation.md)。
 
 ## Roadmap
 
